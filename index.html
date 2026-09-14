@@ -1,6 +1,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sistema PEI — DEMONSTRAÇÃO [CFC]</title>
+<title>Sistema PEI — DEMOSNTRAÇÂO [CFC]</title>
 
 <!-- ══════════════════════════════════════════════════════════════════
      DEPENDÊNCIAS VIA CDN — nenhum arquivo local, nenhum fetch.
@@ -360,6 +360,16 @@ const PERFIS = {
     resumo: 'Responde as fichas de observação das próprias turmas e envia ao setor de psicologia.',
     escopo: 'Este perfil vê apenas os alunos das suas turmas e as fichas que você mesma preenche. Estudos de caso e PEIs aparecem somente em leitura, depois de aprovados.'
   },
+  aee: {
+    id: 'aee', rotulo: 'AEE', nome: 'Prof.ª Lívia Azevedo',
+    cargo: 'Atendimento Educacional Especializado · Sala de Recursos',
+    email: 'livia.azevedo@monteaurora.edu.br', sigla: 'LA',
+    tom: 'bg-pei-100 text-pei-700 ring-pei-200',
+    paginas: ['meusAlunos', 'fichaAEE'],
+    inicial: 'meusAlunos',
+    resumo: 'Registra o acompanhamento realizado na sala de recursos após as respostas dos professores.',
+    escopo: 'Este perfil vê somente os estudantes que a psicologia marcou como atendidos na Sala de Recursos. A resposta do AEE é liberada quando todas as fichas dos professores forem enviadas.'
+  },
   psicologia: {
     id: 'psicologia', rotulo: 'Psicologia', nome: 'Psic. Bianca Rezende',
     cargo: 'Setor de Psicologia Escolar',
@@ -367,8 +377,8 @@ const PERFIS = {
     tom: 'bg-lilas-100 text-lilas-600 ring-lilas-200',
     paginas: ['atribuicoes', 'respostas', 'estudo', 'pei', 'aluno'],
     inicial: 'respostas',
-    resumo: 'Define quem responde por cada aluno, reúne as fichas e elabora o estudo de caso e o PEI.',
-    escopo: 'Este perfil monta o ciclo (quais alunos e quais professores), vê todas as fichas enviadas, registra as considerações clínicas e é o único que gera e aprova estudos de caso e PEIs.'
+    resumo: 'Define quem responde por cada aluno, ativa o AEE quando necessário e elabora o estudo de caso e o PEI.',
+    escopo: 'Este perfil monta o ciclo, marca quem frequenta a Sala de Recursos, vê as fichas docentes e a contribuição do AEE, registra as considerações clínicas e gera e aprova os documentos.'
   },
   coordenacao: {
     id: 'coordenacao', rotulo: 'Coordenação', nome: 'Coord. Marina Deodoro',
@@ -595,6 +605,29 @@ const ALUNOS_SEMENTE = [
     documentos: { estudo: null, pei: null }
   }
 ];
+
+/* Alguns estudantes fictícios já aparecem vinculados à Sala de Recursos
+   para demonstrar as três etapas do fluxo: resposta enviada, liberada e
+   ainda aguardando as fichas dos professores. */
+const AEE_SEMENTE = {
+  a1: {
+    frequenta: true,
+    resposta: {
+      status: 'Enviado', frequencia: 'Regular — duas vezes por semana',
+      potencialidades: 'Demonstra excelente memória visual, interesse por mapas e boa resposta a atividades organizadas em etapas visíveis.',
+      objetivos: 'Ampliar flexibilidade diante de mudanças, planejamento da produção escrita e participação em propostas compartilhadas.',
+      intervencoes: 'Rotina visual, antecipação de transições, organização da escrita com cartões de sequência e jogos cooperativos com regras graduais.',
+      recursos: ['Agenda visual', 'Roteiro impresso'], recursosOutros: 'Cartões de sequência visual',
+      evolucao: 'Passou a iniciar as atividades com menos mediação e aceita pequenas alterações na sequência quando é avisada previamente.',
+      articulacao: 'Manter os mesmos sinais visuais na sala regular e compartilhar com a regência o roteiro usado para organizar produções escritas.',
+      orientacoes: 'Generalizar gradualmente os apoios para contextos menos estruturados, preservando a previsibilidade nas mudanças de rotina.',
+      observacoes: 'O atendimento em dupla favorece a comunicação espontânea e deve ser mantido em parte dos encontros.',
+      enviadoEm: '2026-08-08'
+    }
+  },
+  a2: { frequenta: true, resposta: null },
+  a3: { frequenta: true, resposta: null }
+};
 /* ═══════════════════════════════════════════════════════════════════
    2. UTILITÁRIOS
    ═══════════════════════════════════════════════════════════════ */
@@ -733,6 +766,42 @@ function temAcessibilidade(a) {
   return a.avaliacao.usa || a.rotina.usa || a.recursos.usa;
 }
 
+/* ── Atendimento Educacional Especializado ─────────────────────── */
+const RECURSOS_AEE = [
+  'Agenda visual', 'Roteiro impresso', 'Material concreto',
+  'Abafador de ruído', 'Calculadora', 'Comunicação alternativa',
+  'Letras ou números móveis', 'Dispositivo digital'
+];
+
+function respostaAEEVazia() {
+  return {
+    status: 'Pendente', frequencia: '', potencialidades: '', objetivos: '',
+    intervencoes: '', recursos: [], recursosOutros: '', evolucao: '',
+    articulacao: '', orientacoes: '', observacoes: '', enviadoEm: null
+  };
+}
+
+function normalizarAEE(aluno) {
+  const origem = aluno.aee || AEE_SEMENTE[aluno.id];
+  if (!origem) return { frequenta: false, resposta: respostaAEEVazia() };
+  return {
+    frequenta: !!origem.frequenta,
+    resposta: origem.resposta
+      ? { ...respostaAEEVazia(), ...JSON.parse(JSON.stringify(origem.resposta)) }
+      : respostaAEEVazia()
+  };
+}
+
+function frequentaAEE(aluno) { return !!(aluno.aee && aluno.aee.frequenta); }
+function professoresConcluiram(aluno) { return aluno.respostas.length > 0 && pendentes(aluno).length === 0; }
+function respostaAEE(aluno) { return aluno.aee && aluno.aee.resposta ? aluno.aee.resposta : respostaAEEVazia(); }
+function statusFluxoAEE(aluno) {
+  if (!frequentaAEE(aluno)) return 'Não se aplica';
+  if (!professoresConcluiram(aluno)) return 'Aguardando professores';
+  return respostaAEE(aluno).status || 'Pendente';
+}
+function alunosDoAEE(alunos) { return alunos.filter(frequentaAEE); }
+
 /* ── Atribuições: docente ⇄ ficha ─────────────────────────────── */
 function turmaDe(aluno) { return TURMAS.find(t => t.id === aluno.turmaId) || null; }
 function docentesDoSegmento(seg) { return DOCENTES.filter(d => d.segmentos.includes(seg)); }
@@ -761,7 +830,7 @@ function alunoDeMatricula(m) {
     turma: `${t.nome} — turno ${t.turno}`, turmaId: t.id,
     referencia: 'Núcleo de Apoio à Aprendizagem', referenciaProsa: 'o Núcleo de Apoio à Aprendizagem',
     proximaRevisao: REVISAO_PADRAO,
-    historico: [], comentario: null, respostas: [],
+    historico: [], comentario: null, respostas: [], aee: { frequenta: false, resposta: respostaAEEVazia() },
     documentos: { estudo: null, pei: null }
   };
 }
@@ -891,6 +960,7 @@ function gerarEstudoDeCaso(aluno) {
              aluno: { nome, idade, serie, segmento, categoria },
              periodo: PERIODO_ATUAL,
              respostas: enviadas(aluno),   // uma ficha por professor/disciplina
+             aee: aluno.aee,                // quando frequenta a Sala de Recursos
              historico: aluno.historico
            })
          });
@@ -923,7 +993,7 @@ function gerarEstudoDeCaso(aluno) {
   /* ── Identificação ── */
   S.push('## Identificação');
   S.push(`${aluno.nome}, ${aluno.idade} anos, matriculad${a} ${aluno.serieExtenso}, turma ${aluno.turma}. O acompanhamento considera ${nec.o} e integra o Plano Educacional Individualizado do colégio.`);
-  S.push(`Período de referência: ${PERIODO_ATUAL}. Este estudo foi elaborado pelo ${SETOR} a partir de ${envs.length} ficha${envs.length > 1 ? 's' : ''} de observação — ${listar(envs.map(r => r.disciplina ? `${r.disciplina} (${r.professor})` : `${r.area} (${r.professor})`))}.`);
+  S.push(`Período de referência: ${PERIODO_ATUAL}. Este estudo foi elaborado pelo ${SETOR} a partir de ${envs.length} ficha${envs.length > 1 ? 's' : ''} de observação — ${listar(envs.map(r => r.disciplina ? `${r.disciplina} (${r.professor})` : `${r.area} (${r.professor})`))}${frequentaAEE(aluno) && respostaAEE(aluno).status === 'Enviado' ? ` — e da contribuição do AEE na Sala de Recursos (${PERFIS.aee.nome})` : ''}.`);
 
   /* ── Histórico escolar ── */
   S.push('## Histórico escolar');
@@ -1010,6 +1080,29 @@ function gerarEstudoDeCaso(aluno) {
     S.push(`- ${r.disciplina || r.area} · ${r.professor}: "${r.observacoes}"`);
   });
 
+  /* ── Contribuição do AEE — entra depois das fichas docentes ── */
+  if (frequentaAEE(aluno)) {
+    const raee = respostaAEE(aluno);
+    S.push('## Contribuição do AEE — Sala de Recursos');
+    if (raee.status === 'Enviado') {
+      S.push(`A equipe de Atendimento Educacional Especializado acompanha ${pn} na Sala de Recursos com frequência ${minusculo(raee.frequencia || 'informada pela equipe')}. O registro foi enviado por ${PERFIS.aee.nome} em ${formatarData(raee.enviadoEm)}.`);
+      if (raee.potencialidades) S.push(`Potencialidades observadas no atendimento: ${raee.potencialidades}`);
+      if (raee.objetivos) S.push(`- Objetivos trabalhados: ${raee.objetivos}`);
+      if (raee.intervencoes) S.push(`- Intervenções realizadas: ${raee.intervencoes}`);
+      const recursosAee = [...(raee.recursos || [])];
+      if (raee.recursosOutros) recursosAee.push(raee.recursosOutros);
+      if (recursosAee.length) S.push(`- Recursos utilizados: ${listar(recursosAee)}.`);
+      if (raee.evolucao) S.push(`- Resposta às intervenções e evolução: ${raee.evolucao}`);
+      if (raee.articulacao) S.push(`- Articulação com a sala regular: ${raee.articulacao}`);
+      if (raee.orientacoes) S.push(`- Recomendações do AEE: ${raee.orientacoes}`);
+      if (raee.observacoes) S.push(`Observação complementar do AEE: ${raee.observacoes}`);
+    } else if (!professoresConcluiram(aluno)) {
+      S.push(`O estudante frequenta a Sala de Recursos, mas a resposta do AEE ainda não foi liberada porque há ${pendentes(aluno).length} ficha${pendentes(aluno).length > 1 ? 's' : ''} docente${pendentes(aluno).length > 1 ? 's' : ''} pendente${pendentes(aluno).length > 1 ? 's' : ''}. A contribuição deverá ser incorporada após a conclusão dessa etapa.`);
+    } else {
+      S.push('O estudante frequenta a Sala de Recursos e as fichas docentes já foram concluídas. A resposta do AEE está pendente e deverá ser incorporada antes da validação final do caso.');
+    }
+  }
+
   /* ── Manifestações ── */
   if (manifs.length) {
     S.push('## Manifestações relatadas');
@@ -1082,7 +1175,7 @@ function gerarEstudoDeCaso(aluno) {
 function gerarPEI(aluno) {
   /* ▸ PONTO DE INTEGRAÇÃO COM IA — mesma observação de gerarEstudoDeCaso:
        em produção, POST /api/pei/plano entraria exatamente aqui, recebendo as
-       fichas dos professores E o comentário do setor de psicologia. */
+       fichas dos professores, a contribuição do AEE E o comentário do setor de psicologia. */
 
   const envs = enviadas(aluno);
   const cons = consolidar(aluno);
@@ -1111,7 +1204,7 @@ function gerarPEI(aluno) {
   S.push('## Parte II — Plano Educacional Individualizado');
 
   S.push('## Identificação');
-  S.push(`${aluno.nome}, ${aluno.idade} anos, matriculad${a} ${aluno.serieExtenso}, turma ${aluno.turma}. Plano elaborado pelo ${SETOR} em ${dataPorExtenso(HOJE_ISO)}, com base em ${envs.length} ficha${envs.length > 1 ? 's' : ''} de observação e considerando ${nec.o}.`);
+  S.push(`${aluno.nome}, ${aluno.idade} anos, matriculad${a} ${aluno.serieExtenso}, turma ${aluno.turma}. Plano elaborado pelo ${SETOR} em ${dataPorExtenso(HOJE_ISO)}, com base em ${envs.length} ficha${envs.length > 1 ? 's' : ''} de observação${frequentaAEE(aluno) && respostaAEE(aluno).status === 'Enviado' ? ' e na contribuição do AEE' : ''}, considerando ${nec.o}.`);
   S.push(`Vigência: ${PERIODO_ATUAL}, com revisão prevista para ${dataPorExtenso(aluno.proximaRevisao)}.`);
 
   S.push('## Perfil atual');
@@ -1164,6 +1257,25 @@ function gerarPEI(aluno) {
   const pends = pendentes(aluno);
   if (pends.length) {
     S.push(`- ${listar(pends.map(r => r.disciplina || r.area))}: ficha ainda não enviada. As estratégias ser${pends.length > 1 ? 'ão' : 'á'} incorporad${pends.length > 1 ? 'as' : 'a'} na próxima revisão do plano.`);
+  }
+
+  if (frequentaAEE(aluno)) {
+    const raee = respostaAEE(aluno);
+    S.push('## Articulação com o AEE — Sala de Recursos');
+    if (raee.status === 'Enviado') {
+      S.push(`O atendimento na Sala de Recursos integra este plano e será articulado com os professores da sala regular por ${PERFIS.aee.nome}.`);
+      if (raee.objetivos) S.push(`- Objetivos do AEE: ${raee.objetivos}`);
+      if (raee.intervencoes) S.push(`- Intervenções especializadas: ${raee.intervencoes}`);
+      const recursosAee = [...(raee.recursos || [])];
+      if (raee.recursosOutros) recursosAee.push(raee.recursosOutros);
+      if (recursosAee.length) S.push(`- Recursos da Sala de Recursos: ${listar(recursosAee)}.`);
+      if (raee.articulacao) S.push(`- Aplicação na sala regular: ${raee.articulacao}`);
+      if (raee.orientacoes) S.push(`- Orientações à equipe: ${raee.orientacoes}`);
+    } else if (!professoresConcluiram(aluno)) {
+      S.push('- A contribuição do AEE ainda está bloqueada até a conclusão das fichas dos professores. Regenerar o plano após o envio da equipe da Sala de Recursos.');
+    } else {
+      S.push('- Resposta da equipe de AEE pendente. Regenerar o plano depois que o registro da Sala de Recursos for enviado.');
+    }
   }
 
   if (divs.length) {
@@ -1249,6 +1361,8 @@ function Icone({ nome, className = 'h-5 w-5' }) {
 
 const ESTILO_STATUS = {
   'Pendente': 'bg-white text-tinta-500 ring-pei-200',
+  'Aguardando professores': 'bg-ambar-50 text-ambar-600 ring-ambar-200',
+  'Não se aplica': 'bg-white text-tinta-400 ring-pei-200',
   'Enviado': 'bg-pei-50 text-pei-700 ring-pei-200',
   'Rascunho': 'bg-ambar-50 text-ambar-600 ring-ambar-200',
   'Em revisão': 'bg-lilas-50 text-lilas-600 ring-lilas-200',
@@ -1257,6 +1371,7 @@ const ESTILO_STATUS = {
 };
 const PONTO_STATUS = {
   'Pendente': 'bg-tinta-400', 'Enviado': 'bg-pei-400', 'Rascunho': 'bg-ambar-400',
+  'Aguardando professores': 'bg-ambar-400', 'Não se aplica': 'bg-pei-200',
   'Em revisão': 'bg-lilas-400', 'Aprovado': 'bg-sabia-500', 'Não iniciado': 'bg-pei-200'
 };
 
@@ -2112,6 +2227,236 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   8A. PERFIL AEE — Sala de Recursos
+       A psicologia define quem frequenta. A resposta só é liberada
+       depois que todas as fichas dos professores forem enviadas.
+   ═══════════════════════════════════════════════════════════════ */
+
+function MeusAlunosAEE({ alunos, perfil, aoResponder }) {
+  const meus = alunosDoAEE(alunos);
+  const bloqueados = meus.filter(a => !professoresConcluiram(a));
+  const pendentesAee = meus.filter(a => professoresConcluiram(a) && respostaAEE(a).status === 'Pendente');
+  const enviados = meus.filter(a => respostaAEE(a).status === 'Enviado');
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-pei-500 mb-2">Atendimento Educacional Especializado</p>
+          <h2 className="font-serif text-[28px] sm:text-[34px] leading-tight text-tinta-900 font-semibold">{saudacao}, {primeiroNome(perfil.nome)}.</h2>
+          <p className="text-[15px] text-tinta-500 mt-2">
+            {pendentesAee.length
+              ? `${pendentesAee.length} ${pendentesAee.length === 1 ? 'resposta está liberada' : 'respostas estão liberadas'} para preenchimento.`
+              : 'Nenhuma nova resposta do AEE está liberada neste momento.'}
+          </p>
+        </div>
+        <p className="text-[13px] text-tinta-400">{dataPorExtenso(HOJE_ISO)}</p>
+      </div>
+
+      <Cartao className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-pei-100">
+        {[
+          { rot: 'estudantes na Sala de Recursos', val: meus.length, ic: 'pessoas', tom: 'bg-pei-50 ring-pei-200 text-pei-600' },
+          { rot: 'aguardando fichas docentes', val: bloqueados.length, ic: 'cadeado', tom: 'bg-ambar-50 ring-ambar-200 text-ambar-600' },
+          { rot: 'respostas do AEE enviadas', val: enviados.length, ic: 'check', tom: 'bg-sabia-50 ring-sabia-200 text-sabia-600' }
+        ].map(it => (
+          <div key={it.rot} className="flex items-center gap-3.5 px-5 sm:px-6 py-4">
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ${it.tom}`}><Icone nome={it.ic} className="h-[18px] w-[18px]" /></span>
+            <div><span className="font-serif text-[26px] leading-none font-semibold text-tinta-900">{it.val}</span><p className="text-[12.5px] text-tinta-500 leading-snug mt-1">{it.rot}</p></div>
+          </div>
+        ))}
+      </Cartao>
+
+      {meus.length === 0 ? (
+        <EstadoVazio icone="cadeado" titulo="Nenhum estudante liberado para o AEE"
+          texto="Os estudantes aparecem aqui somente depois que o setor de psicologia marca que frequentam a Sala de Recursos." />
+      ) : (
+        <div className="space-y-3">
+          {meus.map((a, i) => {
+            const concluido = professoresConcluiram(a);
+            const status = statusFluxoAEE(a);
+            const raee = respostaAEE(a);
+            return (
+              <Cartao key={a.id} className="animar-item p-5" style={{ animationDelay: `${i * 55}ms` }}>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
+                  <Avatar nome={a.nome} />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-serif text-[17px] font-semibold text-tinta-900 leading-snug">{a.nome}</h3>
+                    <p className="text-[13px] text-tinta-500 mt-0.5">{a.serie} · {a.segmento} · Sala de Recursos</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                      <Etiqueta tom="lilas">AEE</Etiqueta>
+                      <Selo status={status} tamanho="sm" />
+                      <span className="text-[12px] text-tinta-400">{enviadas(a).length}/{a.respostas.length} fichas docentes</span>
+                    </div>
+                    {!concluido && (
+                      <p className="mt-2.5 text-[12.5px] leading-relaxed text-ambar-600">
+                        A resposta será liberada quando {listar(pendentes(a).map(r => r.disciplina || r.area))} concluir{pendentes(a).length > 1 ? 'em' : ''} o envio.
+                      </p>
+                    )}
+                    {raee.status === 'Enviado' && raee.evolucao && (
+                      <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-relaxed text-tinta-500">Último registro: {raee.evolucao}</p>
+                    )}
+                  </div>
+                  <Botao variante={concluido && raee.status === 'Pendente' ? 'primario' : 'secundario'} disabled={!concluido}
+                    className="w-full justify-center px-3.5 py-2 text-[13px] sm:w-auto" onClick={() => aoResponder(a.id)}>
+                    {!concluido ? <><Icone nome="cadeado" className="h-4 w-4" />Aguardar professores</> : raee.status === 'Enviado' ? 'Rever resposta do AEE' : 'Responder pelo AEE'}
+                  </Botao>
+                </div>
+              </Cartao>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="rounded-2xl bg-pei-800 p-5 text-pei-100">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-300">Sequência do fluxo</p>
+        <p className="text-[13px] leading-relaxed mt-2.5 text-pei-100/90">
+          Primeiro, os professores concluem as fichas da sala regular. Em seguida, o AEE registra o atendimento da Sala de Recursos. A psicologia recebe as duas perspectivas para elaborar o estudo de caso e o PEI.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function FichaAEE({ alunos, alunoId, setAlunoId, aoEnviar }) {
+  const meus = alunosDoAEE(alunos);
+  const aluno = meus.find(a => a.id === alunoId) || null;
+  const inicial = () => {
+    const base = aluno ? respostaAEE(aluno) : respostaAEEVazia();
+    return { ...base, recursos: [...(base.recursos || [])] };
+  };
+  const [f, setF] = useState(inicial);
+  useEffect(() => { setF(inicial()); }, [alunoId]);
+  const set = (campo, valor) => setF(x => ({ ...x, [campo]: valor }));
+  const alternarRecurso = recurso => setF(x => ({
+    ...x,
+    recursos: x.recursos.includes(recurso) ? x.recursos.filter(r => r !== recurso) : [...x.recursos, recurso]
+  }));
+
+  const liberada = aluno ? professoresConcluiram(aluno) : false;
+  const pronta = f.objetivos.trim() && f.intervencoes.trim() && f.evolucao.trim();
+  const jaEnviada = aluno && respostaAEE(aluno).status === 'Enviado';
+
+  return (
+    <div>
+      <TituloSecao sobretitulo="Sala de Recursos" titulo="Resposta do AEE"
+        descricao={`Registro especializado do período ${PERIODO_ATUAL}. O formulário é liberado somente após a conclusão das fichas dos professores da sala regular.`} />
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px] items-start">
+        <div className="space-y-5">
+          <Cartao className="p-6">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta-400 mb-2.5">Estudante atendido na Sala de Recursos</label>
+            <select value={alunoId || ''} onChange={e => setAlunoId(e.target.value || null)}
+              className="w-full appearance-none rounded-xl border-0 bg-pei-50/70 px-4 py-3.5 text-[15px] text-tinta-900 ring-1 ring-inset ring-pei-200 focus:ring-2 focus:ring-pei-500 outline-none transition">
+              <option value="">Selecione um estudante</option>
+              {meus.map(a => <option key={a.id} value={a.id}>{a.nome} — {a.serie}{professoresConcluiram(a) ? '' : ' · aguardando professores'}</option>)}
+            </select>
+          </Cartao>
+
+          {!aluno ? (
+            <EstadoVazio icone="ficha" titulo={meus.length ? 'Selecione um estudante' : 'Nenhum estudante vinculado ao AEE'}
+              texto={meus.length ? 'Escolha acima o estudante cujo atendimento será registrado.' : 'A psicologia ainda não marcou nenhum estudante como frequentador da Sala de Recursos.'} />
+          ) : !liberada ? (
+            <Cartao className="p-7 sm:p-9">
+              <div className="flex flex-col items-center text-center">
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-ambar-50 text-ambar-600 ring-1 ring-inset ring-ambar-200"><Icone nome="cadeado" className="h-6 w-6" /></span>
+                <h3 className="mt-5 font-serif text-xl font-semibold text-tinta-900">Resposta ainda bloqueada</h3>
+                <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-tinta-500">
+                  {primeiroNome(aluno.nome)} frequenta a Sala de Recursos, mas o AEE responde depois dos professores. Faltam {pendentes(aluno).length} de {aluno.respostas.length} fichas docentes.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {pendentes(aluno).map(r => <Etiqueta key={r.area + r.professor} tom="ambar">{r.disciplina || r.area} · pendente</Etiqueta>)}
+                </div>
+              </div>
+            </Cartao>
+          ) : (
+            <>
+              <Cartao className="p-6 animar-item space-y-5">
+                <div>
+                  <h3 className="font-serif text-lg font-semibold text-tinta-900">1. Contexto do atendimento</h3>
+                  <p className="text-[12.5px] text-tinta-500 mt-1">Descreva a participação do estudante na Sala de Recursos.</p>
+                </div>
+                <div>
+                  <label className="text-[13.5px] font-medium text-tinta-800">Frequência no atendimento</label>
+                  <select value={f.frequencia} onChange={e => set('frequencia', e.target.value)}
+                    className="mt-2 w-full appearance-none rounded-xl border-0 bg-pei-50/70 px-4 py-3 text-[14px] text-tinta-900 ring-1 ring-inset ring-pei-200 focus:ring-2 focus:ring-pei-500 outline-none transition">
+                    <option value="">Selecione</option>
+                    <option>Regular — duas vezes por semana</option>
+                    <option>Regular — uma vez por semana</option>
+                    <option>Oscilante</option>
+                    <option>Atendimento iniciado recentemente</option>
+                  </select>
+                </div>
+                <CampoTexto rotulo="Potencialidades observadas" ajuda="Interesses, habilidades preservadas e condições que favorecem a participação."
+                  valor={f.potencialidades} aoMudar={v => set('potencialidades', v)} linhas={3} max={800}
+                  placeholder="Ex.: responde bem a apoios visuais e demonstra boa memória para sequências." />
+              </Cartao>
+
+              <Cartao className="p-6 animar-item space-y-5">
+                <div><h3 className="font-serif text-lg font-semibold text-tinta-900">2. Trabalho desenvolvido</h3><p className="text-[12.5px] text-tinta-500 mt-1">Campos essenciais para compor o estudo de caso e o PEI.</p></div>
+                <CampoTexto rotulo="Objetivos trabalhados *" valor={f.objetivos} aoMudar={v => set('objetivos', v)} linhas={4} max={1000}
+                  placeholder="Quais habilidades e barreiras foram priorizadas no período?" />
+                <CampoTexto rotulo="Intervenções realizadas *" valor={f.intervencoes} aoMudar={v => set('intervencoes', v)} linhas={4} max={1000}
+                  placeholder="Descreva as atividades, mediações e estratégias utilizadas na Sala de Recursos." />
+              </Cartao>
+
+              <Cartao className="p-6 animar-item">
+                <h3 className="font-serif text-lg font-semibold text-tinta-900">3. Tecnologias assistivas e recursos</h3>
+                <p className="text-[12.5px] text-tinta-500 mt-1 mb-4">Marque tudo o que foi efetivamente utilizado no atendimento.</p>
+                <div className="flex flex-wrap gap-2">
+                  {RECURSOS_AEE.map(recurso => {
+                    const marcado = f.recursos.includes(recurso);
+                    return <button key={recurso} type="button" onClick={() => alternarRecurso(recurso)}
+                      className={`rounded-full px-3 py-2 text-[12px] font-medium ring-1 ring-inset transition ${marcado ? 'bg-pei-700 text-white ring-pei-700' : 'bg-white text-tinta-600 ring-pei-200 hover:ring-pei-400'}`}>{marcado ? '✓ ' : ''}{recurso}</button>;
+                  })}
+                </div>
+                <input value={f.recursosOutros} maxLength={220} onChange={e => set('recursosOutros', e.target.value)} placeholder="Outro recurso utilizado (opcional)"
+                  className="mt-4 w-full rounded-xl border-0 bg-pei-50/70 px-4 py-3 text-[14px] text-tinta-900 ring-1 ring-inset ring-pei-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-pei-500 outline-none transition" />
+              </Cartao>
+
+              <Cartao className="p-6 animar-item space-y-5">
+                <div><h3 className="font-serif text-lg font-semibold text-tinta-900">4. Evolução e articulação</h3><p className="text-[12.5px] text-tinta-500 mt-1">Relacione o atendimento especializado à participação na sala regular.</p></div>
+                <CampoTexto rotulo="Resposta às intervenções e evolução *" valor={f.evolucao} aoMudar={v => set('evolucao', v)} linhas={4} max={1200}
+                  placeholder="O que mudou ao longo do período? Quais apoios já podem ser reduzidos ou precisam ser mantidos?" />
+                <CampoTexto rotulo="Articulação com a sala regular" valor={f.articulacao} aoMudar={v => set('articulacao', v)} linhas={4} max={1000}
+                  placeholder="O que deve ser compartilhado ou generalizado com os professores?" />
+                <CampoTexto rotulo="Orientações e próximos passos" valor={f.orientacoes} aoMudar={v => set('orientacoes', v)} linhas={3} max={1000}
+                  placeholder="Recomendações do AEE para o próximo ciclo." />
+                <CampoTexto rotulo="Observações complementares" valor={f.observacoes} aoMudar={v => set('observacoes', v)} linhas={3} max={800} placeholder="Opcional." />
+              </Cartao>
+            </>
+          )}
+        </div>
+
+        <div className="lg:sticky lg:top-6 space-y-4">
+          <Cartao className="p-6">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta-400">Resumo do fluxo</h4>
+            {aluno ? <>
+              <div className="mt-4 flex items-center gap-3"><Avatar nome={aluno.nome} /><div><p className="font-serif text-[17px] font-semibold text-tinta-900">{aluno.nome}</p><p className="text-[12.5px] text-tinta-500">{aluno.serie} · Sala de Recursos</p></div></div>
+              <dl className="mt-5 space-y-3 border-t border-pei-100 pt-5 text-[13px]">
+                <div className="flex justify-between gap-3"><dt className="text-tinta-500">Fichas docentes</dt><dd className="font-medium text-tinta-900">{enviadas(aluno).length}/{aluno.respostas.length}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-tinta-500">Resposta do AEE</dt><dd><Selo status={statusFluxoAEE(aluno)} tamanho="sm" /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-tinta-500">Recursos marcados</dt><dd className="font-medium text-tinta-900">{f.recursos.length}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-tinta-500">Destino</dt><dd className="font-medium text-tinta-900">Psicologia</dd></div>
+              </dl>
+              <Botao className="mt-6 w-full" disabled={!liberada || !pronta} onClick={() => aoEnviar(aluno.id, f)}>
+                <Icone nome="enviar" className="h-4 w-4" />{jaEnviada ? 'Reenviar resposta do AEE' : 'Enviar resposta do AEE'}
+              </Botao>
+              {liberada && !pronta && <p className="mt-3 text-center text-[11.5px] leading-relaxed text-tinta-400">Preencha objetivos, intervenções e evolução para liberar o envio.</p>}
+            </> : <p className="mt-3 text-[13px] leading-relaxed text-tinta-500">Selecione um estudante para visualizar a etapa e iniciar o registro.</p>}
+          </Cartao>
+          <div className="rounded-2xl bg-lilas-50 p-5 ring-1 ring-inset ring-lilas-200">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-lilas-600">Uso da resposta</p>
+            <p className="mt-2.5 text-[12.5px] leading-relaxed text-lilas-600">Depois do envio, a psicologia visualiza este registro abaixo das fichas docentes e pode regenerar o estudo de caso e o PEI com a contribuição do AEE.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 /* ═══════════════════════════════════════════════════════════════════
    8B. PERFIL PSICOLOGIA — atribuições
        Montagem do ciclo: quais alunos de cada turma entram no
@@ -2151,7 +2496,7 @@ function ChipDocente({ docente, resposta, aoAlternar }) {
   );
 }
 
-function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, aoRemoverAluno, irPara }) {
+function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE, aoIncluir, aoRemoverAluno, irPara }) {
   const [segmento, setSegmento] = useState('Todos');
   const [aberto, setAberto] = useState(null);
   const [outros, setOutros] = useState({});
@@ -2160,6 +2505,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, ao
   const noCiclo = alunos.length;
   const totalAtribuicoes = alunos.reduce((s, a) => s + a.respostas.length, 0);
   const totalPendentes = alunos.reduce((s, a) => s + pendentes(a).length, 0);
+  const totalAEE = alunos.filter(frequentaAEE).length;
   const semProfessor = alunos.filter(a => a.respostas.length === 0);
 
   return (
@@ -2167,7 +2513,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, ao
       <TituloSecao
         sobretitulo="Psicologia · montagem do ciclo"
         titulo="Atribuições"
-        descricao={`Defina quais alunos de cada turma entram no acompanhamento em ${PERIODO_ATUAL} e quais professores respondem por cada um. Cada atribuição gera uma ficha pendente na tela do professor.`}
+        descricao={`Defina quais alunos entram no acompanhamento em ${PERIODO_ATUAL}, quais professores respondem e quem frequenta a Sala de Recursos. O AEE só recebe o estudante depois dessa marcação.`}
       />
 
       {semProfessor.length > 0 && (
@@ -2186,7 +2532,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, ao
           { rot: noCiclo === 1 ? 'aluno no acompanhamento' : 'alunos no acompanhamento', val: noCiclo, ic: 'pessoas', tom: 'bg-pei-50 ring-pei-200 text-pei-600' },
           { rot: totalAtribuicoes === 1 ? 'atribuição ativa' : 'atribuições ativas', val: totalAtribuicoes, ic: 'lista', tom: 'bg-lilas-50 ring-lilas-200 text-lilas-500' },
           { rot: totalPendentes === 1 ? 'ficha pendente' : 'fichas pendentes', val: totalPendentes, ic: 'ficha', tom: 'bg-ambar-50 ring-ambar-200 text-ambar-500' },
-          { rot: 'turmas com acompanhamento', val: new Set(alunos.map(a => a.turmaId)).size, ic: 'caixa', tom: 'bg-sabia-50 ring-sabia-200 text-sabia-600' }
+          { rot: 'estudantes na Sala de Recursos', val: totalAEE, ic: 'faisca', tom: 'bg-sabia-50 ring-sabia-200 text-sabia-600' }
         ].map(it => (
           <div key={it.rot} className="flex items-center gap-3.5 px-5 sm:px-6 py-4">
             <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ${it.tom}`}><Icone nome={it.ic} className="h-[18px] w-[18px]" /></span>
@@ -2240,6 +2586,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, ao
                                   {a.respostas.length} {a.respostas.length === 1 ? 'professor atribuído' : 'professores atribuídos'} · {envs.length} {envs.length === 1 ? 'ficha recebida' : 'fichas recebidas'}
                                 </span>
                               )}
+                              {frequentaAEE(a) && <Etiqueta tom="lilas">Sala de Recursos · {statusFluxoAEE(a)}</Etiqueta>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -2272,6 +2619,35 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, ao
                               {docentes.map(d => (
                                 <ChipDocente key={d.id} docente={d} resposta={respostaDoDocente(a, d)} aoAlternar={dd => aoAlternarDocente(a.id, dd)} />
                               ))}
+                            </div>
+
+                            <div className="mt-5 border-t border-pei-100 pt-5">
+                              <div className={`rounded-2xl p-4 ring-1 ring-inset transition ${frequentaAEE(a) ? 'bg-lilas-50/60 ring-lilas-200' : 'bg-white ring-pei-200'}`}>
+                                <div className="flex flex-wrap items-center justify-between gap-4">
+                                  <div className="flex min-w-0 items-start gap-3">
+                                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${frequentaAEE(a) ? 'bg-lilas-100 text-lilas-600' : 'bg-pei-50 text-tinta-400'}`}><Icone nome="faisca" className="h-[18px] w-[18px]" /></span>
+                                    <div>
+                                      <p className="text-[13.5px] font-medium text-tinta-900">Frequenta a Sala de Recursos?</p>
+                                      <p className="mt-1 text-[12px] leading-relaxed text-tinta-500">Somente a psicologia libera o estudante para a equipe de AEE.</p>
+                                    </div>
+                                  </div>
+                                  <SimNao valor={frequentaAEE(a)} aoMudar={valor => aoAlternarAEE(a.id, valor)} />
+                                </div>
+
+                                {frequentaAEE(a) && (
+                                  <div className="animar-item mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-lilas-100 pt-4">
+                                    <div>
+                                      <p className="text-[12.5px] text-tinta-600">Responsável pelo registro: <strong className="font-medium text-tinta-800">{PERFIS.aee.nome}</strong></p>
+                                      <p className="mt-1 text-[11.5px] text-tinta-400">
+                                        {professoresConcluiram(a)
+                                          ? respostaAEE(a).status === 'Enviado' ? `Resposta enviada em ${formatarData(respostaAEE(a).enviadoEm)}.` : 'Fichas docentes concluídas — resposta do AEE liberada.'
+                                          : `Aguardando ${pendentes(a).length} ${pendentes(a).length === 1 ? 'ficha docente' : 'fichas docentes'} para liberar o formulário.`}
+                                      </p>
+                                    </div>
+                                    <Selo status={statusFluxoAEE(a)} tamanho="sm" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             <p className="text-[11.5px] text-tinta-400 mt-3.5 leading-relaxed">
@@ -2318,10 +2694,10 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoIncluir, ao
       </div>
 
       <div className="rounded-2xl bg-pei-800 p-5 text-pei-100">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-300">Como isso chega ao professor</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-300">Como as atribuições chegam às equipes</p>
         <p className="text-[13px] leading-relaxed mt-2.5 text-pei-100/90">
           Ao atribuir um professor, uma ficha em branco aparece imediatamente na tela “Meus alunos” dele, marcada como
-          pendente. Ele não vê os outros alunos nem as fichas dos colegas — apenas o que foi atribuído a ele aqui.
+          pendente. Para o AEE, o estudante aparece somente quando a psicologia marca a Sala de Recursos; o formulário fica bloqueado até todos os professores responderem.
         </p>
       </div>
     </div>
@@ -2446,6 +2822,58 @@ function CartaoResposta({ resposta }) {
   );
 }
 
+function CartaoRespostaAEE({ aluno }) {
+  if (!frequentaAEE(aluno)) return null;
+  const r = respostaAEE(aluno);
+  const status = statusFluxoAEE(aluno);
+  const recursos = [...(r.recursos || [])];
+  if (r.recursosOutros) recursos.push(r.recursosOutros);
+
+  return (
+    <div className="mt-4 rounded-2xl bg-gradient-to-br from-lilas-50/90 to-white p-5 ring-1 ring-inset ring-lilas-200">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lilas-100 text-lilas-600"><Icone nome="faisca" className="h-5 w-5" /></span>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-lilas-600">Contribuição posterior às fichas docentes</p>
+            <h4 className="mt-1 font-serif text-[17px] font-semibold text-tinta-900">AEE · Sala de Recursos</h4>
+            <p className="mt-0.5 text-[12px] text-tinta-500">{PERFIS.aee.nome}</p>
+          </div>
+        </div>
+        <Selo status={status} tamanho="sm" />
+      </div>
+
+      {status === 'Aguardando professores' ? (
+        <p className="mt-4 rounded-xl bg-ambar-50 px-4 py-3 text-[12.5px] leading-relaxed text-ambar-600 ring-1 ring-inset ring-ambar-200">
+          O estudante frequenta a Sala de Recursos, mas o formulário do AEE permanece bloqueado até a chegada de {pendentes(aluno).length} {pendentes(aluno).length === 1 ? 'ficha docente' : 'fichas docentes'}.
+        </p>
+      ) : r.status === 'Pendente' ? (
+        <p className="mt-4 text-[12.5px] leading-relaxed text-tinta-500">As fichas dos professores foram concluídas. A resposta da equipe de AEE está liberada e ainda não foi enviada.</p>
+      ) : (
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {[
+            ['Frequência', r.frequencia],
+            ['Potencialidades observadas', r.potencialidades],
+            ['Objetivos trabalhados', r.objetivos],
+            ['Intervenções realizadas', r.intervencoes],
+            ['Recursos utilizados', recursos.length ? listar(recursos) : 'Nenhum recurso específico informado'],
+            ['Resposta às intervenções e evolução', r.evolucao],
+            ['Articulação com a sala regular', r.articulacao],
+            ['Orientações e próximos passos', r.orientacoes]
+          ].filter(([, valor]) => valor).map(([rotulo, valor]) => (
+            <div key={rotulo} className="rounded-xl bg-white/80 p-3.5 ring-1 ring-inset ring-lilas-100">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.11em] text-tinta-400">{rotulo}</p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-tinta-600">{valor}</p>
+            </div>
+          ))}
+          {r.observacoes && <p className="md:col-span-2 border-l-2 border-lilas-300 pl-3 text-[12.5px] italic leading-relaxed text-tinta-600">“{r.observacoes}”</p>}
+          <p className="md:col-span-2 text-[11px] text-tinta-400">Resposta enviada em {formatarData(r.enviadoEm)}.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbrirAtribuicoes }) {
   const [segmento, setSegmento] = useState('Todos');
   const [bloco, setBloco] = useState('Todos');
@@ -2454,19 +2882,22 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
   const filtrados = alunos.filter(a => segmento === 'Todos' || a.segmento === segmento);
   const totalEsperadas = alunos.reduce((s, a) => s + a.respostas.length, 0);
   const totalEnviadas = alunos.reduce((s, a) => s + enviadas(a).length, 0);
+  const aeeEsperadas = alunos.filter(frequentaAEE).length;
+  const aeeEnviadas = alunos.filter(a => frequentaAEE(a) && respostaAEE(a).status === 'Enviado').length;
   const semEstudo = alunos.filter(a => !a.documentos.estudo).length;
 
   return (
     <div className="space-y-7">
       <TituloSecao
         sobretitulo="Psicologia"
-        titulo="Respostas dos professores"
-        descricao={`Todas as fichas do período ${PERIODO_ATUAL}, organizadas por aluno. É a partir delas — e das suas considerações — que o estudo de caso e o PEI são elaborados.`}
+        titulo="Respostas docentes e contribuição do AEE"
+        descricao={`Fichas docentes e, quando aplicável, a contribuição posterior do AEE em ${PERIODO_ATUAL}. A psicologia integra essas perspectivas ao estudo de caso e ao PEI.`}
       />
 
-      <Cartao className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-pei-100">
+      <Cartao className="grid sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-pei-100">
         {[
           { rot: 'fichas recebidas', val: `${totalEnviadas}/${totalEsperadas}`, ic: 'caixa', tom: 'bg-pei-50 ring-pei-200 text-pei-600' },
+          { rot: 'respostas do AEE', val: `${aeeEnviadas}/${aeeEsperadas}`, ic: 'escudo', tom: 'bg-sabia-50 ring-sabia-200 text-sabia-600' },
           { rot: `aluno${alunos.length === 1 ? '' : 's'} acompanhado${alunos.length === 1 ? '' : 's'}`, val: alunos.length, ic: 'aluno', tom: 'bg-lilas-50 ring-lilas-200 text-lilas-500' },
           { rot: semEstudo === 1 ? 'aguarda estudo de caso' : 'aguardam estudo de caso', val: semEstudo, ic: 'faisca', tom: 'bg-ambar-50 ring-ambar-200 text-ambar-500' }
         ].map(it => (
@@ -2498,6 +2929,7 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
             const cons = consolidar(a);
             const divs = divergencias(a);
             const blocoId = bloco === 'Todos' ? null : BLOCOS.find(b => b.curto === bloco).id;
+            const aeePendente = frequentaAEE(a) && respostaAEE(a).status !== 'Enviado';
 
             return (
               <Cartao key={a.id} className="animar-item overflow-hidden" style={{ animationDelay: `${i * 55}ms` }}>
@@ -2524,6 +2956,7 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
 
                   <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-start">
                     {a.comentario && <span className="text-lilas-500" title="Comentário da psicologia registrado"><Icone nome="balao" className="h-4 w-4" /></span>}
+                    {frequentaAEE(a) && <div className="text-right"><p className="text-[10.5px] uppercase tracking-[0.1em] text-tinta-400 font-semibold mb-1">AEE</p><Selo status={statusFluxoAEE(a)} tamanho="sm" /></div>}
                     <div className="text-right">
                       <p className="text-[10.5px] uppercase tracking-[0.1em] text-tinta-400 font-semibold mb-1">Estudo</p>
                       <Selo status={statusDoc(a.documentos.estudo)} tamanho="sm" />
@@ -2560,6 +2993,8 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
                     <div className="grid gap-3 xl:grid-cols-2">
                       {a.respostas.map(r => <CartaoResposta key={r.area + r.professor} resposta={r} />)}
                     </div>
+
+                    <CartaoRespostaAEE aluno={a} />
 
                     {cons && (
                       <div className="mt-4 rounded-xl bg-white ring-1 ring-inset ring-pei-200 p-4">
@@ -2603,17 +3038,18 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
                     )}
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Botao variante={a.documentos.estudo ? 'secundario' : 'primario'} disabled={!envs.length}
-                        titulo={!envs.length ? 'É preciso ao menos uma ficha enviada' : undefined}
+                      <Botao variante={a.documentos.estudo ? 'secundario' : 'primario'} disabled={!envs.length || (!a.documentos.estudo && aeePendente)}
+                        titulo={!envs.length ? 'É preciso ao menos uma ficha enviada' : (!a.documentos.estudo && aeePendente) ? 'Aguardar a resposta do AEE' : undefined}
                         onClick={() => (a.documentos.estudo ? aoAbrirDoc(a.id, 'estudo') : aoGerar(a.id, 'estudo'))}>
                         <Icone nome="faisca" className="h-4 w-4" />{a.documentos.estudo ? 'Abrir estudo de caso' : 'Gerar estudo de caso'}
                       </Botao>
-                      <Botao variante={a.documentos.pei ? 'secundario' : 'primario'} disabled={!envs.length}
-                        titulo={!envs.length ? 'É preciso ao menos uma ficha enviada' : undefined}
+                      <Botao variante={a.documentos.pei ? 'secundario' : 'primario'} disabled={!envs.length || (!a.documentos.pei && aeePendente)}
+                        titulo={!envs.length ? 'É preciso ao menos uma ficha enviada' : (!a.documentos.pei && aeePendente) ? 'Aguardar a resposta do AEE' : undefined}
                         onClick={() => (a.documentos.pei ? aoAbrirDoc(a.id, 'pei') : aoGerar(a.id, 'pei'))}>
                         <Icone nome="plano" className="h-4 w-4" />{a.documentos.pei ? 'Abrir PEI' : 'Gerar PEI'}
                       </Botao>
                       {!envs.length && <span className="text-[12px] text-tinta-400">Os documentos só podem ser gerados a partir de pelo menos uma ficha enviada.</span>}
+                      {envs.length > 0 && aeePendente && (!a.documentos.estudo || !a.documentos.pei) && <span className="text-[12px] text-ambar-600">Este estudante frequenta a Sala de Recursos. Aguarde a contribuição do AEE antes de gerar os documentos.</span>}
                     </div>
                   </div>
                 )}
@@ -2813,7 +3249,11 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
   const envs = enviadas(aluno);
   const cons = consolidar(aluno);
   const completo = envs.length === aluno.respostas.length;
+  const aguardaAEE = frequentaAEE(aluno) && respostaAEE(aluno).status !== 'Enviado';
   const comentarioNovo = tipo === 'pei' && aluno.comentario && !doc.texto.includes('Considerações do setor de psicologia');
+  const aeeEnviado = frequentaAEE(aluno) && respostaAEE(aluno).status === 'Enviado';
+  const aeeNovo = aeeEnviado && !doc.texto.includes(tipo === 'pei' ? 'Articulação com o AEE' : 'Contribuição do AEE');
+  const atualizacaoPendente = comentarioNovo || aeeNovo;
 
   return (
     <div>
@@ -2829,12 +3269,15 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
         }
       />
 
-      {comentarioNovo && (
+      {atualizacaoPendente && (
         <div className="animar-aviso mb-5 flex items-start gap-3 rounded-2xl bg-lilas-50 ring-1 ring-inset ring-lilas-200 px-5 py-4">
           <span className="mt-0.5 text-lilas-500 shrink-0"><Icone nome="alerta" className="h-[18px] w-[18px]" /></span>
           <p className="flex-1 text-[13.5px] leading-relaxed text-lilas-600">
-            Há considerações da psicologia registradas depois deste plano ter sido gerado. Use
-            <strong className="font-semibold"> Gerar novamente</strong> para incorporá-las ao texto.
+            {comentarioNovo && aeeNovo
+              ? 'Há novas considerações da psicologia e uma resposta do AEE posteriores a este documento.'
+              : comentarioNovo ? 'Há considerações da psicologia registradas depois deste plano ter sido gerado.'
+              : 'A equipe de AEE enviou a contribuição da Sala de Recursos depois deste documento ter sido gerado.'}
+            <strong className="font-semibold"> Use “Gerar novamente”</strong> para incorporar as informações ao texto.
           </p>
         </div>
       )}
@@ -2864,9 +3307,10 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
               <div className="font-serif text-[16px] leading-[1.8] text-tinta-800"><CorpoDocumento texto={doc.texto} justificado /></div>
             )}
 
-            <footer className={`mt-14 pt-8 border-t border-pei-100 grid ${tipo === 'pei' ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-3'} gap-x-6 gap-y-10 text-center text-[12.5px] text-tinta-500`}>
+            <footer className={`mt-14 pt-8 border-t border-pei-100 grid ${tipo === 'pei' ? `sm:grid-cols-2 ${frequentaAEE(aluno) ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}` : 'sm:grid-cols-3'} gap-x-6 gap-y-10 text-center text-[12.5px] text-tinta-500`}>
               <div><div className="h-px bg-tinta-400/40 mb-2.5" />{PERFIS.psicologia.nome}<br /><span className="text-tinta-400">{SETOR}</span></div>
               <div><div className="h-px bg-tinta-400/40 mb-2.5" />{aluno.referencia}<br /><span className="text-tinta-400">Equipe de referência</span></div>
+              {tipo === 'pei' && frequentaAEE(aluno) && <div><div className="h-px bg-tinta-400/40 mb-2.5" />{PERFIS.aee.nome}<br /><span className="text-tinta-400">AEE · Sala de Recursos</span></div>}
               {tipo === 'pei' && <div><div className="h-px bg-tinta-400/40 mb-2.5" />{aluno.nome}<br /><span className="text-tinta-400">Estudante (quando aplicável)</span></div>}
               <div><div className="h-px bg-tinta-400/40 mb-2.5" />&nbsp;<br /><span className="text-tinta-400">Responsável familiar</span></div>
             </footer>
@@ -2883,14 +3327,15 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
             <p className="text-[13px] text-tinta-500 leading-relaxed mt-3.5">
               {aprovado
                 ? 'Documento aprovado e vinculado ao prontuário do aluno. O PEI aprovado fica visível, em leitura, para os professores das turmas.'
+                : aguardaAEE ? 'A aprovação final está bloqueada até a equipe de AEE enviar a contribuição da Sala de Recursos.'
                 : 'O documento não é publicado automaticamente. A aprovação registra a validação humana do texto.'}
             </p>
             <div className="mt-5 space-y-2.5">
               <Botao variante={editando ? 'primario' : 'secundario'} className="w-full" onClick={() => setEditando(e => !e)}>
                 <Icone nome={editando ? 'check' : 'ficha'} className="h-4 w-4" />{editando ? 'Concluir edição' : 'Editar texto'}
               </Botao>
-              <Botao variante="aprovar" className="w-full" disabled={aprovado} onClick={() => aoAprovar(aluno.id, tipo)}>
-                <Icone nome="escudo" className="h-4 w-4" />{aprovado ? `${cfg.nome} aprovado` : `Aprovar ${cfg.acao}`}
+              <Botao variante="aprovar" className="w-full" disabled={aprovado || aguardaAEE} onClick={() => aoAprovar(aluno.id, tipo)}>
+                <Icone nome={aguardaAEE && !aprovado ? 'cadeado' : 'escudo'} className="h-4 w-4" />{aprovado ? `${cfg.nome} aprovado` : aguardaAEE ? 'Aguardando resposta do AEE' : `Aprovar ${cfg.acao}`}
               </Botao>
               {tipo === 'estudo' && aprovado && (
                 <Botao variante="secundario" className="w-full animar-item" onClick={() => irPara('pei')}>
@@ -2919,6 +3364,12 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
                   <Selo status={r.status} tamanho="sm" />
                 </li>
               ))}
+              {frequentaAEE(aluno) && (
+                <li className="flex items-center justify-between gap-3 border-t border-pei-100 pt-2 text-[12.5px]">
+                  <span className="text-lilas-600">AEE · Sala de Recursos</span>
+                  <Selo status={statusFluxoAEE(aluno)} tamanho="sm" />
+                </li>
+              )}
             </ul>
             <div className="pt-4 border-t border-pei-100">
               <p className="text-[11px] uppercase tracking-[0.12em] text-tinta-400 font-semibold mb-3">Perfil consolidado</p>
@@ -2984,6 +3435,7 @@ function PaginaAluno({ alunos, alunoId, setAlunoId, irPara, somenteLeitura }) {
                 <Etiqueta>{aluno.serie} · {aluno.segmento}</Etiqueta>
                 <Etiqueta>{aluno.idade} anos</Etiqueta>
                 <Etiqueta>{aluno.turma}</Etiqueta>
+                {frequentaAEE(aluno) && <Etiqueta tom="lilas">Sala de Recursos</Etiqueta>}
               </div>
             </div>
           </div>
@@ -3005,7 +3457,7 @@ function PaginaAluno({ alunos, alunoId, setAlunoId, irPara, somenteLeitura }) {
           </div>
         </div>
 
-        <div className="mt-7 pt-6 border-t border-pei-100 grid gap-5 sm:grid-cols-3 text-[13px]">
+        <div className="mt-7 pt-6 border-t border-pei-100 grid gap-5 sm:grid-cols-2 xl:grid-cols-4 text-[13px]">
           <div>
             <p className="text-[10.5px] uppercase tracking-[0.12em] text-tinta-400 font-semibold">Equipe de referência</p>
             <p className="text-tinta-800 mt-1">{aluno.referencia}</p>
@@ -3021,6 +3473,10 @@ function PaginaAluno({ alunos, alunoId, setAlunoId, irPara, somenteLeitura }) {
           <div>
             <p className="text-[10.5px] uppercase tracking-[0.12em] text-tinta-400 font-semibold">Períodos registrados</p>
             <p className="text-tinta-800 mt-1">{regs.length ? regs.map(r => r.periodo).join(' · ') : 'Nenhum ainda — primeiro período em curso'}</p>
+          </div>
+          <div>
+            <p className="text-[10.5px] uppercase tracking-[0.12em] text-tinta-400 font-semibold">Sala de Recursos / AEE</p>
+            <div className="mt-1">{frequentaAEE(aluno) ? <Selo status={statusFluxoAEE(aluno)} tamanho="sm" /> : <span className="text-tinta-500">Não frequenta</span>}</div>
           </div>
         </div>
       </Cartao>
@@ -3182,12 +3638,19 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
 
   const esperadas = alunos.reduce((s, a) => s + a.respostas.length, 0);
   const recebidas = alunos.reduce((s, a) => s + enviadas(a).length, 0);
+  const aeeEsperadas = alunos.filter(frequentaAEE).length;
+  const aeeRecebidas = alunos.filter(a => frequentaAEE(a) && respostaAEE(a).status === 'Enviado').length;
+  const registrosEsperados = esperadas + aeeEsperadas;
+  const registrosRecebidos = recebidas + aeeRecebidas;
   const peisAprovados = alunos.filter(a => a.documentos.pei && a.documentos.pei.status === 'Aprovado').length;
   const revisoesMes = alunos.filter(a => mesmoMes(a.proximaRevisao, HOJE));
 
   const pendencias = [];
   alunos.forEach(a => {
     pendentes(a).forEach(r => pendencias.push({ aluno: a, motivo: `Ficha de ${r.disciplina || r.area} pendente com ${r.professor}` }));
+    if (frequentaAEE(a) && respostaAEE(a).status !== 'Enviado') {
+      pendencias.push({ aluno: a, motivo: professoresConcluiram(a) ? 'Resposta do AEE liberada e ainda pendente' : 'Resposta do AEE aguardando a conclusão das fichas docentes' });
+    }
     if (!a.documentos.pei) pendencias.push({ aluno: a, motivo: 'PEI ainda não elaborado para o período' });
     else if (a.documentos.pei.status !== 'Aprovado') pendencias.push({ aluno: a, motivo: `PEI em ${a.documentos.pei.status.toLowerCase()} — aguardando aprovação` });
   });
@@ -3215,7 +3678,7 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-pei-500 mb-2">Coordenação</p>
           <h2 className="font-serif text-[28px] sm:text-[34px] leading-tight text-tinta-900 font-semibold">{saudacao}, Marina.</h2>
           <p className="text-[15px] text-tinta-500 mt-2">
-            {recebidas} de {esperadas} fichas recebidas no período {PERIODO_ATUAL}
+            {recebidas} de {esperadas} fichas docentes e {aeeRecebidas} de {aeeEsperadas} respostas do AEE recebidas em {PERIODO_ATUAL}
             {pendencias.length ? ` · ${pendencias.length} ${pendencias.length === 1 ? 'pendência' : 'pendências'} em aberto.` : ' · nenhuma pendência em aberto.'}
           </p>
         </div>
@@ -3225,7 +3688,7 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
       <Cartao className="grid sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-pei-100">
         {[
           { rot: `aluno${alunos.length === 1 ? '' : 's'} com PEI ativo`, val: alunos.length, ic: 'pessoas', tom: 'bg-pei-50 ring-pei-200 text-pei-600' },
-          { rot: 'cobertura das fichas', val: `${Math.round((recebidas / esperadas) * 100)}%`, ic: 'caixa', tom: 'bg-lilas-50 ring-lilas-200 text-lilas-500' },
+          { rot: 'cobertura dos registros', val: `${Math.round((registrosRecebidos / registrosEsperados) * 100)}%`, ic: 'caixa', tom: 'bg-lilas-50 ring-lilas-200 text-lilas-500' },
           { rot: peisAprovados === 1 ? 'PEI aprovado' : 'PEIs aprovados', val: peisAprovados, ic: 'plano', tom: 'bg-sabia-50 ring-sabia-200 text-sabia-600' },
           { rot: `revis${revisoesMes.length === 1 ? 'ão' : 'ões'} em ${nomeMes}`, val: revisoesMes.length, ic: 'calendario', tom: 'bg-ambar-50 ring-ambar-200 text-ambar-500' }
         ].map(it => (
@@ -3356,8 +3819,9 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
 const PAGINAS = {
   meusAlunos: { rotulo: 'Meus alunos', curto: 'Alunos', icone: 'pessoas', descricao: 'Turmas e pendências' },
   ficha: { rotulo: 'Ficha de observação', curto: 'Ficha', icone: 'ficha', descricao: 'Responder e enviar' },
+  fichaAEE: { rotulo: 'Resposta do AEE', curto: 'Responder', icone: 'faisca', descricao: 'Registro da Sala de Recursos' },
   atribuicoes: { rotulo: 'Atribuições', curto: 'Atribuir', icone: 'lista', descricao: 'Quem responde por quem' },
-  respostas: { rotulo: 'Respostas dos professores', curto: 'Respostas', icone: 'caixa', descricao: 'Fichas por aluno' },
+  respostas: { rotulo: 'Respostas e AEE', curto: 'Respostas', icone: 'caixa', descricao: 'Contribuições por aluno' },
   estudo: { rotulo: 'Estudo de caso', curto: 'Estudo', icone: 'faisca', descricao: 'Síntese e análise' },
   pei: { rotulo: 'PEI', curto: 'PEI', icone: 'plano', descricao: 'Plano individualizado' },
   aluno: { rotulo: 'Página do aluno', curto: 'Aluno', icone: 'grafico', descricao: 'Prontuário e evolução' },
@@ -3465,7 +3929,7 @@ function LoginUX({ aoEntrar }) {
   const [senha, setSenha] = useState('demonstracao');
   const [entrando, setEntrando] = useState(false);
   const perfil = PERFIS[perfilId];
-  const icones = { professor: 'ficha', psicologia: 'faisca', coordenacao: 'painel' };
+  const icones = { professor: 'ficha', aee: 'escudo', psicologia: 'faisca', coordenacao: 'painel' };
 
   function enviar(e) {
     e.preventDefault();
@@ -3494,14 +3958,14 @@ function LoginUX({ aoEntrar }) {
             Um olhar completo para cada trajetória de aprendizagem.
           </h1>
           <p className="mt-6 max-w-[590px] text-[15px] xl:text-[16px] leading-[1.8] text-indigo-100/75">
-            Professores registram o que observam. A psicologia organiza evidências, elabora o estudo de caso e estrutura o PEI. A coordenação acompanha o todo.
+            Professores registram a sala regular. Quando houver atendimento na Sala de Recursos, o AEE acrescenta sua leitura. A psicologia integra as evidências e a coordenação acompanha o todo.
           </p>
 
           <div className="mt-9 grid max-w-[600px] grid-cols-3 gap-3">
             {[
               ['01', 'Registrar', 'Observações por turma e disciplina'],
-              ['02', 'Compreender', 'Síntese multiprofissional do caso'],
-              ['03', 'Acompanhar', 'Evolução, prazos e planos']
+              ['02', 'Complementar', 'Contribuição do AEE quando aplicável'],
+              ['03', 'Integrar', 'Estudo de caso, PEI e acompanhamento']
             ].map(([n, tit, desc]) => (
               <div key={n} className="rounded-2xl border border-white/10 bg-white/[.055] p-4 backdrop-blur-sm">
                 <span className="text-[10px] font-extrabold tracking-[.18em] text-indigo-300">{n}</span>
@@ -3666,7 +4130,8 @@ function NavegacaoMobile({ perfil, pagina, setPagina, marcas }) {
 
 // gera os textos dos documentos que já existem na semente
 function semear(base) {
-  return base.map(aluno => {
+  return base.map(original => {
+    const aluno = { ...original, aee: normalizarAEE(original) };
     const docs = {};
     ['estudo', 'pei'].forEach(t => {
       const d = aluno.documentos[t];
@@ -3741,6 +4206,20 @@ function App() {
     });
   }
 
+  function alternarAEE(id, frequenta) {
+    setAlunos(lista => lista.map(a => {
+      if (a.id !== id) return a;
+      const atual = a.aee || { frequenta: false, resposta: respostaAEEVazia() };
+      return { ...a, aee: { ...atual, frequenta, resposta: atual.resposta || respostaAEEVazia() } };
+    }));
+    const alvo = alunos.find(a => a.id === id);
+    setAviso({
+      texto: frequenta
+        ? `${primeiroNome(alvo.nome)} foi vinculad${alvo.genero === 'f' ? 'a' : 'o'} à Sala de Recursos. O AEE verá o estudante e responderá após as fichas dos professores.`
+        : `${primeiroNome(alvo.nome)} deixou de aparecer no fluxo da Sala de Recursos. O registro anterior foi preservado nesta demonstração.`
+    });
+  }
+
   function incluirAluno(matriculaId) {
     const m = MATRICULADOS.find(x => x.id === matriculaId);
     if (!m) return;
@@ -3786,6 +4265,23 @@ function App() {
     }));
     const alvo = alunos.find(a => a.id === id);
     setAviso({ texto: `Ficha de ${primeiroNome(alvo.nome)} enviada ao ${SETOR}. O perfil consolidado foi recalculado.` });
+    setPagina('meusAlunos');
+  }
+
+  /* ── AEE: resposta posterior às fichas docentes ── */
+  function enviarRespostaAEE(id, f) {
+    setAlunos(lista => lista.map(a => {
+      if (a.id !== id || !frequentaAEE(a) || !professoresConcluiram(a)) return a;
+      return {
+        ...a,
+        aee: {
+          ...a.aee,
+          resposta: { ...f, recursos: [...f.recursos], status: 'Enviado', enviadoEm: HOJE_ISO }
+        }
+      };
+    }));
+    const alvo = alunos.find(a => a.id === id);
+    setAviso({ texto: `Resposta do AEE sobre ${primeiroNome(alvo.nome)} enviada à psicologia. O estudo de caso e o PEI já podem incorporar essa contribuição.` });
     setPagina('meusAlunos');
   }
 
@@ -3835,6 +4331,7 @@ function App() {
 
   function abrirAluno(id) { setAlunoId(id); setPagina('aluno'); }
   function responderFicha(id) { setAlunoId(id); setPagina('ficha'); }
+  function responderFichaAEE(id) { setAlunoId(id); setPagina('fichaAEE'); }
 
   if (!perfil) return <LoginUX aoEntrar={entrar} />;
 
@@ -3844,14 +4341,22 @@ function App() {
     const p = meus.filter(a => { const r = fichaDoProfessor(a, perfil.nome); return r && r.status === 'Pendente'; }).length;
     if (p) { marcas.meusAlunos = p; marcas.ficha = p; }
   }
+  if (perfilId === 'aee') {
+    const meus = alunosDoAEE(alunos);
+    const liberadas = meus.filter(a => professoresConcluiram(a) && respostaAEE(a).status === 'Pendente').length;
+    if (liberadas) { marcas.meusAlunos = liberadas; marcas.fichaAEE = liberadas; }
+  }
   if (perfilId === 'psicologia') {
     const semDoc = alunos.filter(a => enviadas(a).length && (!a.documentos.estudo || !a.documentos.pei)).length;
-    if (semDoc) marcas.respostas = semDoc;
+    const aeePendentes = alunos.filter(a => frequentaAEE(a) && respostaAEE(a).status !== 'Enviado').length;
+    if (semDoc || aeePendentes) marcas.respostas = semDoc + aeePendentes;
     const semProf = alunos.filter(a => a.respostas.length === 0).length;
     if (semProf) marcas.atribuicoes = semProf;
   }
   if (perfilId === 'coordenacao') {
-    const pend = alunos.reduce((s, a) => s + pendentes(a).length + (!a.documentos.pei || a.documentos.pei.status !== 'Aprovado' ? 1 : 0), 0);
+    const pend = alunos.reduce((s, a) => s + pendentes(a).length
+      + (frequentaAEE(a) && respostaAEE(a).status !== 'Enviado' ? 1 : 0)
+      + (!a.documentos.pei || a.documentos.pei.status !== 'Aprovado' ? 1 : 0), 0);
     if (pend) marcas.visaoGeral = pend;
   }
 
@@ -3893,11 +4398,14 @@ function App() {
             )}
 
             <div key={pagina} className="animar-pagina">
-              {pagina === 'meusAlunos' && <MeusAlunos alunos={alunos} perfil={perfil} aoResponder={responderFicha} />}
+              {pagina === 'meusAlunos' && (perfilId === 'aee'
+                ? <MeusAlunosAEE alunos={alunos} perfil={perfil} aoResponder={responderFichaAEE} />
+                : <MeusAlunos alunos={alunos} perfil={perfil} aoResponder={responderFicha} />)}
               {pagina === 'ficha' && <FichaObservacao alunos={alunos} perfil={perfil} alunoId={alunoId} setAlunoId={setAlunoId} aoEnviar={enviarFicha} />}
+              {pagina === 'fichaAEE' && <FichaAEE alunos={alunos} alunoId={alunoId} setAlunoId={setAlunoId} aoEnviar={enviarRespostaAEE} />}
               {pagina === 'atribuicoes' && (
                 <Atribuicoes alunos={alunos} aoAlternarDocente={alternarDocente} aoAtribuirTodos={atribuirTodos}
-                  aoIncluir={incluirAluno} aoRemoverAluno={removerAluno} irPara={setPagina} />
+                  aoAlternarAEE={alternarAEE} aoIncluir={incluirAluno} aoRemoverAluno={removerAluno} irPara={setPagina} />
               )}
               {pagina === 'respostas' && (
                 <RespostasProfessores alunos={alunos} aoGerar={gerarDoc} aoAbrirDoc={abrirDoc} aoAbrirAluno={abrirAluno}
