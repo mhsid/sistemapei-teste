@@ -1,6 +1,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sistema PEI — DEMOSNTRAÇÂO [CFC]</title>
+<title>Sistema PEI — DEMONSTRAÇÃO - CFC</title>
 
 <!-- ══════════════════════════════════════════════════════════════════
      DEPENDÊNCIAS VIA CDN — nenhum arquivo local, nenhum fetch.
@@ -301,7 +301,9 @@ const AREAS_DESC = [
 const MANIFESTACOES = [
   { id: 'estereotipia', rotulo: 'Estereotipia ou ecolalia' },
   { id: 'hiperfoco', rotulo: 'Hiperfoco' },
-  { id: 'tiques', rotulo: 'Tiques' }
+  { id: 'tiques', rotulo: 'Tiques' },
+  { id: 'sensibilidadeSensorial', rotulo: 'Sensibilidade sensorial' },
+  { id: 'seletividadeAlimentar', rotulo: 'Seletividade alimentar', somenteFund1: true }
 ];
 
 const SEGMENTOS = ['Anos Iniciais', 'Fundamental II', 'Médio'];
@@ -319,16 +321,22 @@ const TURMAS = [
 
 const DOCENTES = [
   { id: 'd1', nome: 'Prof.ª Rita Amorim', papel: 'Regência polivalente', disciplina: null, segmentos: ['Anos Iniciais'] },
-  { id: 'd2', nome: 'Prof. Décio Valadares', papel: 'Arte e Educação Física', disciplina: null, segmentos: ['Anos Iniciais'] },
+  { id: 'd2', nome: 'Prof. Décio Valadares', papel: 'Educação Física', disciplina: null, segmentos: ['Anos Iniciais'], integrada: true },
   { id: 'd3', nome: 'Prof.ª Rita Amorim', papel: 'Linguagens', disciplina: 'Língua Portuguesa', segmentos: ['Fundamental II'] },
   { id: 'd4', nome: 'Prof.ª Vera Quintanilha', papel: 'Linguagens', disciplina: 'Língua Portuguesa', segmentos: ['Médio'] },
   { id: 'd5', nome: 'Prof. Caio Sobral', papel: 'Matemática', disciplina: 'Matemática', segmentos: ['Fundamental II', 'Médio'] },
   { id: 'd6', nome: 'Prof.ª Ilana Beserra', papel: 'Ciências da Natureza', disciplina: 'Ciências', segmentos: ['Fundamental II'] },
   { id: 'd7', nome: 'Prof.ª Ilana Beserra', papel: 'Ciências da Natureza', disciplina: 'Biologia', segmentos: ['Médio'] },
-  { id: 'd8', nome: 'Prof. Décio Valadares', papel: 'Ciências Humanas', disciplina: 'História', segmentos: ['Fundamental II', 'Médio'] }
+  { id: 'd8', nome: 'Prof. Décio Valadares', papel: 'Ciências Humanas', disciplina: 'História', segmentos: ['Fundamental II', 'Médio'] },
+  { id: 'd9', nome: 'Prof.ª Joana Vidal', papel: 'Maker', disciplina: null, segmentos: ['Anos Iniciais'], integrada: true },
+  { id: 'd10', nome: 'Prof.ª Cecília Noronha', papel: 'Artes', disciplina: null, segmentos: ['Anos Iniciais'], integrada: true },
+  { id: 'd11', nome: 'Prof.ª Laura Meireles', papel: 'Ética', disciplina: null, segmentos: ['Anos Iniciais'], integrada: true },
+  { id: 'd12', nome: 'Prof.ª Elisa Brandão', papel: 'Inglês', disciplina: null, segmentos: ['Anos Iniciais'], integrada: true },
+  { id: 'd13', nome: 'Prof.ª Ilana Beserra', papel: 'Laboratório de Ciências', disciplina: null, segmentos: ['Anos Iniciais'], integrada: true }
 ];
 
-// alunos matriculados que ainda não entraram no acompanhamento
+// lista fictícia de estudantes matriculados; a psicóloga responsável pela turma
+// faz a triagem e marca quem precisa entrar no ciclo de PEI
 const MATRICULADOS = [
   { id: 'm1', turmaId: 't1', nome: 'Antônio Rebelo Faria', genero: 'm', idade: 9, hipotese: 'TDAH' },
   { id: 'm2', turmaId: 't1', nome: 'Cecília Boaventura Lins', genero: 'f', idade: 10, hipotese: 'Deficiência Intelectual' },
@@ -339,6 +347,16 @@ const MATRICULADOS = [
 ];
 
 const REVISAO_PADRAO = '2026-12-05';
+
+const PSICOLOGAS = [
+  { id: 'psi1', nome: 'Psic. Bianca Rezende' },
+  { id: 'psi2', nome: 'Psic. Camila Seabra' },
+  { id: 'psi3', nome: 'Psic. Renata Montenegro' }
+];
+
+const RESPONSAVEIS_TURMA_SEMENTE = {
+  t1: 'psi1', t2: 'psi1', t3: 'psi2', t4: 'psi3'
+};
 
 // a ficha dos Anos Iniciais é a do 5º ano do documento; as demais seguem a do 6º ano
 function fichaPolivalente(segmento) { return segmento === 'Anos Iniciais'; }
@@ -375,10 +393,10 @@ const PERFIS = {
     cargo: 'Setor de Psicologia Escolar',
     email: 'bianca.rezende@monteaurora.edu.br', sigla: 'BR',
     tom: 'bg-lilas-100 text-lilas-600 ring-lilas-200',
-    paginas: ['atribuicoes', 'respostas', 'estudo', 'pei', 'aluno'],
-    inicial: 'respostas',
-    resumo: 'Define quem responde por cada aluno, ativa o AEE quando necessário e elabora o estudo de caso e o PEI.',
-    escopo: 'Este perfil monta o ciclo, marca quem frequenta a Sala de Recursos, vê as fichas docentes e a contribuição do AEE, registra as considerações clínicas e gera e aprova os documentos.'
+    paginas: ['atribuicoes', 'respostas', 'relatorio', 'estudo', 'pei', 'aluno'],
+    inicial: 'atribuicoes',
+    resumo: 'Assume turmas, realiza a triagem, organiza as fontes do caso e elabora os documentos de acompanhamento.',
+    escopo: 'Este perfil assume turmas, marca quem necessita de PEI, define a equipe, recebe fichas docentes, AEE e AMI, anexa documentos e gera a síntese, o relatório escolar, o estudo de caso e o PEI.'
   },
   coordenacao: {
     id: 'coordenacao', rotulo: 'Coordenação', nome: 'Coord. Marina Deodoro',
@@ -403,7 +421,18 @@ function nv(cog, emo, soc, exc = {}) {
   return { ...o, ...exc };
 }
 
-const SEM_MANIF = { estereotipia: { sim: false, texto: '' }, hiperfoco: { sim: false, texto: '' }, tiques: { sim: false, texto: '' } };
+const SEM_MANIF = Object.fromEntries(MANIFESTACOES.map(m => [m.id, { sim: false, texto: '' }]));
+
+function normalizarManifestacoes(valor) {
+  return Object.fromEntries(MANIFESTACOES.map(m => [
+    m.id,
+    { ...SEM_MANIF[m.id], ...((valor && valor[m.id]) || {}) }
+  ]));
+}
+
+function comentariosBlocoDe(resposta) {
+  return Object.fromEntries(BLOCOS.map(b => [b.id, (resposta && resposta.comentariosBloco && resposta.comentariosBloco[b.id]) || '']));
+}
 
 const ALUNOS_SEMENTE = [
   {
@@ -421,6 +450,11 @@ const ALUNOS_SEMENTE = [
       {
         area: 'Regência polivalente', professor: 'Prof.ª Rita Amorim', disciplina: null,
         niveis: nv(3, 2, 3, { interpretacao: 4, copia: 4, organizacao: 3, autonomia: 2, desatencao: 3, ansiedade: 3, socializacao: 3, grupo: 3, conflitos: 1 }),
+        comentariosBloco: {
+          cognitivo: 'Helena compreende melhor quando recebe um exemplo visual antes de iniciar. Nas produções mais longas, o roteiro em três etapas reduz a necessidade de retomadas.',
+          emocional: 'Demonstra incômodo quando há mudança inesperada, mas consegue se reorganizar com antecipação breve e indicação visual da nova sequência.',
+          social: 'Tem aceitado participar em duplas escolhidas previamente e começa a procurar algumas colegas de forma espontânea no recreio.'
+        },
         areasDesc: {
           leitura: 'Decodifica com fluência crescente; lê em voz alta sem apoio quando o texto tem fonte ampliada.',
           escrita: 'Depende de roteiro prévio para organizar as ideias; a letra é legível e o traçado, firme.',
@@ -434,8 +468,13 @@ const ALUNOS_SEMENTE = [
         status: 'Enviado', enviadoEm: '2026-07-28'
       },
       {
-        area: 'Arte e Educação Física', professor: 'Prof. Décio Valadares', disciplina: null,
+        area: 'Educação Física', professor: 'Prof. Décio Valadares', disciplina: null,
         niveis: nv(2, 2, 2, { cooperacao: 3, conversa: 1, inquietude: 3, socializacao: 2, grupo: 3, conflitos: 1, autocobranca: 3 }),
+        comentariosBloco: {
+          cognitivo: 'Compreende comandos curtos e demonstra boa memória da sequência dos circuitos. Regras com muitas exceções precisam ser apresentadas uma de cada vez.',
+          emocional: 'Aceita correções individuais com tranquilidade, mas se frustra quando a regra muda durante a atividade.',
+          social: 'Participa melhor em dupla fixa; em equipes maiores tende a observar antes de entrar na proposta.'
+        },
         areasDesc: { leitura: 'Não avaliado nesta área.', escrita: 'Registros curtos, feitos sem resistência.', compreensaoLeitora: 'Segue comandos escritos simples com autonomia.', matematica: 'Usa contagem e medida nas atividades práticas sem dificuldade.' },
         manifestacoes: { estereotipia: { sim: false, texto: '' }, hiperfoco: { sim: true, texto: 'Pede sempre a mesma atividade de circuito; aceita variar quando avisada com antecedência.' }, tiques: { sim: false, texto: '' } },
         observacoes: 'Participa das atividades coletivas com apoio pontual. Prefere duplas fixas e evita jogos com regra que muda no meio.',
@@ -628,6 +667,25 @@ const AEE_SEMENTE = {
   a2: { frequenta: true, resposta: null },
   a3: { frequenta: true, resposta: null }
 };
+
+/* Metadados fictícios. Nesta demo os arquivos não saem do navegador:
+   o conteúdo real seria armazenado e analisado somente por um backend seguro. */
+const DOCUMENTOS_ANEXOS_SEMENTE = {
+  a1: [
+    { id: 'anexo-a1-1', categoria: 'Laudo', nome: 'laudo_neurodesenvolvimento_helena.pdf', tamanho: '842 KB', adicionadoEm: '2026-07-12', autor: 'Psic. Bianca Rezende', resumo: 'Documento de referência registra recomendações de previsibilidade, organização visual da rotina e atenção às respostas sensoriais.' },
+    { id: 'anexo-a1-2', categoria: 'Avaliação', nome: 'avaliacao_psicopedagogica_helena.pdf', tamanho: '1,2 MB', adicionadoEm: '2026-07-18', autor: 'Psic. Bianca Rezende', resumo: 'Avaliação destaca memória visual, compreensão literal preservada e necessidade de mediação em inferências e planejamento da escrita.' }
+  ],
+  a3: [
+    { id: 'anexo-a3-1', categoria: 'Avaliação', nome: 'avaliacao_funcional_marina.pdf', tamanho: '694 KB', adicionadoEm: '2026-06-30', autor: 'Psic. Bianca Rezende', resumo: 'Registro funcional aponta benefício com instruções objetivas, apoio visual e repetição planejada das rotinas acadêmicas.' }
+  ]
+};
+
+const COMENTARIOS_AMI_SEMENTE = {
+  a1: {
+    texto: 'A AMI observa boa adesão aos combinados quando a rotina é antecipada. Recomenda manter linguagem direta, oferecer tempo de reorganização diante de mudanças e compartilhar com a família os mesmos sinais visuais usados na escola.',
+    autor: 'Equipe AMI', data: '2026-08-06'
+  }
+};
 /* ═══════════════════════════════════════════════════════════════════
    2. UTILITÁRIOS
    ═══════════════════════════════════════════════════════════════ */
@@ -676,16 +734,23 @@ function desempenho(nivel) { return 6 - nivel; }
 const ROTULO_DESEMPENHO = { 5: 'Autônomo', 4: 'Apoio pontual', 3: 'Mediação', 2: 'Apoio frequente', 1: 'Apoio contínuo' };
 function rotuloDesempenho(v) { return ROTULO_DESEMPENHO[Math.max(1, Math.min(5, Math.round(v)))]; }
 
-// média dos itens de um bloco
-function mediaBloco(niveis, blocoId) {
+/* A leitura integrada não calcula média. Em cada conjunto usamos o nível
+   predominante (moda); em caso de empate, prevalece o que pede mais apoio. */
+function nivelPredominante(valores) {
+  const validos = valores.filter(v => Number.isFinite(Number(v))).map(v => Math.max(1, Math.min(5, Math.round(Number(v)))));
+  if (!validos.length) return 3;
+  const contagem = validos.reduce((acc, v) => ({ ...acc, [v]: (acc[v] || 0) + 1 }), {});
+  return Object.keys(contagem).map(Number).sort((a, b) => contagem[b] - contagem[a] || b - a)[0];
+}
+function nivelBloco(niveis, blocoId) {
   const itens = BLOCOS.find(b => b.id === blocoId).itens;
-  return itens.reduce((s, i) => s + niveis[i.id], 0) / itens.length;
+  return nivelPredominante(itens.map(i => niveis[i.id]));
 }
 function perfisDe(niveis) {
-  return Object.fromEntries(BLOCOS.map(b => [b.id, mediaBloco(niveis, b.id)]));
+  return Object.fromEntries(BLOCOS.map(b => [b.id, nivelBloco(niveis, b.id)]));
 }
-function mediaGeral(perfis) {
-  return (perfis.cognitivo + perfis.emocional + perfis.social) / 3;
+function nivelGeral(perfis) {
+  return nivelPredominante(BLOCOS.map(b => perfis[b.id]));
 }
 
 /* ── Consolidação: o perfil do período corrente é CALCULADO a partir das
@@ -698,14 +763,18 @@ function consolidar(aluno) {
   if (!envs.length) return null;
   const niveis = {};
   ITENS.forEach(i => {
-    niveis[i.id] = Math.round(envs.reduce((s, r) => s + r.niveis[i.id], 0) / envs.length);
+    niveis[i.id] = nivelPredominante(envs.map(r => r.niveis[i.id]));
   });
-  return { periodo: PERIODO_ATUAL, niveis, perfis: perfisDe(niveis), respostas: envs.length, consolidado: true };
+  return { periodo: PERIODO_ATUAL, niveis, perfis: perfisDe(niveis), respostas: envs.length, consolidado: true, criterio: 'predominancia' };
 }
 
 function periodos(aluno) {
   const atual = consolidar(aluno);
-  return atual ? [...aluno.historico, atual] : [...aluno.historico];
+  const historico = aluno.historico.map(h => ({
+    ...h,
+    perfis: Object.fromEntries(BLOCOS.map(b => [b.id, Math.max(1, Math.min(5, Math.round(h.perfis[b.id]))) ]))
+  }));
+  return atual ? [...historico, atual] : historico;
 }
 function periodoAtual(aluno) {
   const p = periodos(aluno);
@@ -807,11 +876,12 @@ function turmaDe(aluno) { return TURMAS.find(t => t.id === aluno.turmaId) || nul
 function docentesDoSegmento(seg) { return DOCENTES.filter(d => d.segmentos.includes(seg)); }
 function respostaDoDocente(aluno, d) { return aluno.respostas.find(r => r.professor === d.nome && r.area === d.papel) || null; }
 
-// uma atribuição nova nasce como ficha pendente, com os níveis no ponto médio
+// uma atribuição nova nasce como ficha pendente, com os níveis no ponto central
 function fichaPendente(docente, segmento) {
   const base = {
     area: docente.papel, professor: docente.nome, disciplina: docente.disciplina,
     niveis: nv(3, 3, 3), manifestacoes: JSON.parse(JSON.stringify(SEM_MANIF)),
+    comentariosBloco: comentariosBlocoDe(null),
     observacoes: '', adaptacao: { necessita: false, quais: '' },
     acessibilidades: acessibilidadesDe(null), estrategias: '', outras: '',
     status: 'Pendente', enviadoEm: null
@@ -830,8 +900,9 @@ function alunoDeMatricula(m) {
     turma: `${t.nome} — turno ${t.turno}`, turmaId: t.id,
     referencia: 'Núcleo de Apoio à Aprendizagem', referenciaProsa: 'o Núcleo de Apoio à Aprendizagem',
     proximaRevisao: REVISAO_PADRAO,
-    historico: [], comentario: null, respostas: [], aee: { frequenta: false, resposta: respostaAEEVazia() },
-    documentos: { estudo: null, pei: null }
+    historico: [], comentario: null, comentarioAMI: null, anexos: [], sintese: null,
+    respostas: [], aee: { frequenta: false, resposta: respostaAEEVazia() },
+    documentos: { estudo: null, pei: null, relatorio: null }
   };
 }
 
@@ -937,7 +1008,7 @@ function agrupar(niveis) {
   };
 }
 
-// leitura qualitativa de um bloco a partir da sua média
+// leitura qualitativa de um bloco a partir do nível predominante
 function lerBloco(v) {
   if (v <= 1.7) return 'sem dificuldades observáveis';
   if (v <= 2.4) return 'com dificuldades leves, que exigem apoios pontuais';
@@ -998,8 +1069,8 @@ function gerarEstudoDeCaso(aluno) {
   /* ── Histórico escolar ── */
   S.push('## Histórico escolar');
   if (hist.length) {
-    const g0 = mediaGeral(hist[0].perfis);
-    const g1 = mediaGeral(cons.perfis);
+    const g0 = nivelGeral(hist[0].perfis);
+    const g1 = nivelGeral(cons.perfis);
     const rumo = g1 < g0 - 0.3 ? 'evolução consistente' : g1 > g0 + 0.3 ? 'retrocesso que merece atenção' : 'estabilidade';
     S.push(`${aluno.nome} é acompanhad${a} pelo Plano Educacional Individualizado desde ${hist[0].periodo}, somando ${hist.length + 1} períodos registrados. O balanço do percurso indica ${rumo}.`);
     const blocoMelhor = BLOCOS.map(b => ({ b, d: hist[0].perfis[b.id] - cons.perfis[b.id] })).sort((x, y) => y.d - x.d)[0];
@@ -1080,6 +1151,16 @@ function gerarEstudoDeCaso(aluno) {
     S.push(`- ${r.disciplina || r.area} · ${r.professor}: "${r.observacoes}"`);
   });
 
+  const comentariosPorBloco = envs.flatMap(r => BLOCOS.map(b => ({
+    bloco: b, resposta: r, texto: comentariosBlocoDe(r)[b.id]
+  }))).filter(x => x.texto.trim());
+  if (comentariosPorBloco.length) {
+    S.push('Comentários docentes por bloco:');
+    comentariosPorBloco.forEach(x => {
+      S.push(`- ${x.bloco.nome} · ${x.resposta.disciplina || x.resposta.area} (${x.resposta.professor}): ${x.texto.trim()}`);
+    });
+  }
+
   /* ── Contribuição do AEE — entra depois das fichas docentes ── */
   if (frequentaAEE(aluno)) {
     const raee = respostaAEE(aluno);
@@ -1101,6 +1182,17 @@ function gerarEstudoDeCaso(aluno) {
     } else {
       S.push('O estudante frequenta a Sala de Recursos e as fichas docentes já foram concluídas. A resposta do AEE está pendente e deverá ser incorporada antes da validação final do caso.');
     }
+  }
+
+  if (aluno.comentarioAMI && aluno.comentarioAMI.texto) {
+    S.push('## Contribuição da AMI');
+    S.push(aluno.comentarioAMI.texto.trim());
+    S.push(`Registro recebido de ${aluno.comentarioAMI.autor}, em ${formatarData(aluno.comentarioAMI.data)}.`);
+  }
+
+  if (aluno.anexos && aluno.anexos.length) {
+    S.push('## Documentos complementares consultados');
+    aluno.anexos.forEach(anexo => S.push(`- ${anexo.categoria}: ${anexo.nome}.${anexo.resumo ? ` Síntese registrada: ${anexo.resumo}` : ''}`));
   }
 
   /* ── Manifestações ── */
@@ -1278,6 +1370,16 @@ function gerarPEI(aluno) {
     }
   }
 
+  if (aluno.comentarioAMI && aluno.comentarioAMI.texto) {
+    S.push('## Articulação com a AMI');
+    S.push(aluno.comentarioAMI.texto.trim());
+  }
+
+  if (aluno.anexos && aluno.anexos.length) {
+    S.push('## Documentos complementares considerados');
+    aluno.anexos.forEach(anexo => S.push(`- ${anexo.categoria}: ${anexo.nome}${anexo.resumo ? ` — ${anexo.resumo}` : ' — conteúdo a ser validado pela equipe no sistema de produção'}.`));
+  }
+
   if (divs.length) {
     const d = divs[0];
     S.push(`Nota para o conselho: o desempenho em "${minusculo(d.rotulo)}" varia conforme o contexto — melhor em ${d.melhor}, mais crítico em ${d.pior}. Recomenda-se investigar o que ${d.melhor} faz de diferente e replicar a condição nas demais aulas.`);
@@ -1292,6 +1394,118 @@ function gerarPEI(aluno) {
   S.push(`O alcance dos objetivos será verificado pelo registro de cada professor, com nova ficha de observação ao final do período. A revisão deste plano ocorrerá em ${dataPorExtenso(aluno.proximaRevisao)}, em reunião do ${SETOR} com ${aluno.referenciaProsa} e os professores envolvidos, seguida de devolutiva à família.`);
   S.push('Considera-se objetivo alcançado quando o comportamento descrito for observado de forma consistente por, ao menos, dois professores distintos.');
 
+  return S.join('\n');
+}
+
+function gerarRelatorioAcompanhamento(aluno) {
+  /* Relatório composto apenas com as respostas docentes. Em produção, uma
+     chamada real à API entraria aqui, substituindo a composição local abaixo. */
+  const envs = enviadas(aluno);
+  const cons = consolidar(aluno);
+  if (!envs.length || !cons) return null;
+  const fem = aluno.genero === 'f';
+  const pn = primeiroNome(aluno.nome);
+  const S = [];
+
+  S.push('## Identificação e finalidade');
+  S.push(`${aluno.nome}, ${aluno.idade} anos, matriculad${fem ? 'a' : 'o'} ${aluno.serieExtenso}, turma ${aluno.turma}. Este relatório registra o acompanhamento escolar de ${PERIODO_ATUAL} a partir das observações dos professores, preservando as diferenças entre disciplinas e contextos.`);
+  S.push(`Foram consideradas ${envs.length} ficha${envs.length > 1 ? 's' : ''}: ${listar(envs.map(r => `${r.disciplina || r.area} — ${r.professor}`))}.`);
+
+  S.push('## Acompanhamento por contexto');
+  envs.forEach(r => {
+    const locais = perfisDe(r.niveis);
+    const faixas = BLOCOS.map(b => `${minusculo(b.curto)} em ${minusculo(rotuloDesempenho(desempenho(locais[b.id])))}`);
+    S.push(`- ${r.disciplina || r.area} (${r.professor}): ${listar(faixas)}.${r.observacoes ? ` Observação: ${r.observacoes}` : ''}`);
+    BLOCOS.forEach(b => {
+      const comentario = comentariosBlocoDe(r)[b.id];
+      if (comentario) S.push(`- Comentário de ${minusculo(b.nome)} · ${r.disciplina || r.area}: ${comentario}`);
+    });
+  });
+
+  S.push('## Leitura das respostas');
+  BLOCOS.forEach(b => S.push(`- ${b.nome}: a faixa predominante nas fichas é ${minusculo(rotuloDesempenho(desempenho(cons.perfis[b.id])))}.`));
+  const divs = divergencias(aluno);
+  if (divs.length) {
+    S.push(`As respostas variam conforme o contexto em ${listar(divs.slice(0, 4).map(d => minusculo(d.rotulo)))}. Essa diferença é mantida no relatório e deve ser discutida pela equipe, sem transformar as fichas em uma média única.`);
+  } else {
+    S.push('As respostas apresentam convergência entre os contextos observados, sem diferenças acentuadas entre as fichas recebidas.');
+  }
+
+  const apoios = envs.map(r => ({ r, a: acessibilidadesDe(r) })).filter(x => temAcessibilidade(x.a));
+  S.push('## Apoios observados na rotina escolar');
+  if (!apoios.length) {
+    S.push('Não há adaptação, acessibilidade ou recurso material registrado nas fichas deste período.');
+  } else {
+    apoios.forEach(({ r, a }) => {
+      if (a.avaliacao.usa) S.push(`- Avaliações · ${r.disciplina || r.area}: ${a.avaliacao.descricao || 'apoio informado, sem detalhamento'}.`);
+      if (a.rotina.usa) S.push(`- Rotina diária · ${r.disciplina || r.area}: ${a.rotina.descricao || 'apoio informado, sem detalhamento'}.`);
+      if (a.recursos.usa) S.push(`- Recurso assistivo ou material · ${r.disciplina || r.area}: ${textoRecursos(a.recursos)}.`);
+    });
+  }
+
+  S.push('## Encaminhamentos para o próximo período');
+  const prioritarios = itensPorNivel(cons.niveis, v => v >= 4).slice(0, 4);
+  if (prioritarios.length) S.push(`A equipe docente deverá acompanhar especialmente ${listar(prioritarios.map(i => minusculo(i.rotulo)))}, registrando exemplos concretos de avanço, estabilidade ou necessidade de novo apoio.`);
+  else S.push(`Recomenda-se manter as estratégias que favorecem a participação de ${pn} e registrar, por contexto, as conquistas que se tornam mais autônomas.`);
+  S.push(`O presente relatório tem finalidade de acompanhamento escolar e deverá ser revisto em ${dataPorExtenso(aluno.proximaRevisao)}.`);
+  return S.join('\n');
+}
+
+function gerarSinteseCompleta(aluno) {
+  /* Síntese integrada local. Em produção, a leitura segura dos anexos e a
+     chamada real à API entrariam exatamente neste ponto, em um backend. */
+  const envs = enviadas(aluno);
+  const cons = consolidar(aluno);
+  if (!cons) return null;
+  const S = [];
+  const fem = aluno.genero === 'f';
+
+  S.push('## Identificação e fontes consideradas');
+  S.push(`${aluno.nome}, ${aluno.idade} anos, ${aluno.turma}, em acompanhamento no período ${PERIODO_ATUAL}. A síntese reúne as fichas docentes, os comentários de cada bloco, as adaptações registradas, a contribuição do AEE quando aplicável, os registros da AMI e da psicologia e os documentos complementares anexados.`);
+  S.push(`Fontes docentes: ${listar(envs.map(r => `${r.disciplina || r.area} (${r.professor})`))}.`);
+
+  S.push('## Síntese das respostas docentes');
+  BLOCOS.forEach(b => {
+    S.push(`- ${b.nome}: faixa predominante ${minusculo(rotuloDesempenho(desempenho(cons.perfis[b.id])))}; ${lerBloco(cons.perfis[b.id])}.`);
+    envs.forEach(r => {
+      const comentario = comentariosBlocoDe(r)[b.id];
+      if (comentario) S.push(`- ${r.disciplina || r.area} · ${r.professor}: ${comentario}`);
+    });
+  });
+  const divs = divergencias(aluno);
+  if (divs.length) S.push(`Foram preservadas diferenças relevantes entre contextos em ${listar(divs.slice(0, 4).map(d => minusculo(d.rotulo)))}; elas não foram reduzidas a uma média.`);
+
+  S.push('## Adaptações, acessibilidades e manifestações');
+  const apoios = envs.map(r => ({ r, a: acessibilidadesDe(r) })).filter(x => temAcessibilidade(x.a));
+  if (apoios.length) {
+    apoios.forEach(({ r, a }) => {
+      const partes = [];
+      if (a.avaliacao.usa) partes.push(`avaliações: ${a.avaliacao.descricao || 'uso informado'}`);
+      if (a.rotina.usa) partes.push(`rotina: ${a.rotina.descricao || 'uso informado'}`);
+      if (a.recursos.usa) partes.push(`recursos: ${textoRecursos(a.recursos)}`);
+      S.push(`- ${r.disciplina || r.area}: ${partes.join('; ')}.`);
+    });
+  } else S.push('Nenhum apoio específico foi informado nas fichas recebidas.');
+  const manifs = manifestacoesRelatadas(aluno);
+  manifs.forEach(m => S.push(`- ${m.rotulo}: ${listar(m.relatos.map(r => r.texto || `observado por ${r.professor}`))}.`));
+
+  S.push('## Contribuições interdisciplinares');
+  if (frequentaAEE(aluno)) {
+    const aee = respostaAEE(aluno);
+    S.push(aee.status === 'Enviado'
+      ? `AEE: ${aee.evolucao || aee.observacoes || 'resposta enviada pela Sala de Recursos'}, com foco em ${aee.objetivos || 'objetivos definidos pela equipe'}.`
+      : 'AEE: estudante vinculado à Sala de Recursos, com resposta ainda pendente.');
+  } else S.push('AEE: o estudante não está marcado como frequentando a Sala de Recursos neste ciclo.');
+  S.push(aluno.comentarioAMI && aluno.comentarioAMI.texto ? `AMI: ${aluno.comentarioAMI.texto}` : 'AMI: nenhum comentário recebido neste período.');
+  S.push(aluno.comentario && aluno.comentario.texto ? `Psicologia: ${aluno.comentario.texto}` : 'Psicologia: consideração complementar ainda não registrada.');
+
+  S.push('## Documentos complementares');
+  if (aluno.anexos && aluno.anexos.length) aluno.anexos.forEach(anexo => S.push(`- ${anexo.categoria} · ${anexo.nome}${anexo.resumo ? `: ${anexo.resumo}` : ' — conteúdo não interpretado nesta demonstração'}.`));
+  else S.push('Nenhum laudo ou avaliação foi anexado neste período.');
+
+  S.push('## Síntese integradora');
+  const prioritarios = itensPorNivel(cons.niveis, v => v >= 4).slice(0, 4);
+  S.push(`${fem ? 'A estudante' : 'O estudante'} apresenta um perfil que responde de forma distinta aos contextos de ensino. ${prioritarios.length ? `As prioridades compartilhadas são ${listar(prioritarios.map(i => minusculo(i.rotulo)))}.` : 'Não há item em faixa de prioridade compartilhada neste período.'} As decisões do estudo de caso e do PEI deverão considerar cada fonte separadamente, validar os apoios com a família e registrar a resposta do estudante às estratégias propostas.`);
   return S.join('\n');
 }
 
@@ -1315,11 +1529,11 @@ function analisarTendencia(aluno) {
     else frases.push(`Estabilidade no ${minusculo(b.nome)}, que se mantém no mesmo patamar desde ${regs[0].periodo}.`);
   });
 
-  const d0 = Math.round(desempenho(mediaGeral(pri)) * 10) / 10;
-  const d1 = Math.round(desempenho(mediaGeral(ult)) * 10) / 10;
-  const dif = Math.round(Math.abs(d1 - d0) * 10) / 10;
+  const d0 = desempenho(nivelGeral(pri));
+  const d1 = desempenho(nivelGeral(ult));
+  const dif = Math.abs(d1 - d0);
   const dir = d1 > d0 ? 'alta' : d1 < d0 ? 'recuo' : null;
-  frases.push(`No conjunto dos três perfis, o índice de desempenho médio passou de ${nl(d0)} para ${nl(d1)} numa escala de 1 a 5 — ${dir ? `${dir} de ${nl(dif)} ponto${dif >= 2 ? 's' : ''} no balanço geral` : 'sem variação no balanço geral'}.`);
+  frases.push(`No conjunto dos três perfis, a faixa predominante de desempenho passou de ${rotuloDesempenho(d0)} para ${rotuloDesempenho(d1)} — ${dir ? `${dir} de ${dif} faixa${dif > 1 ? 's' : ''} no balanço geral` : 'sem mudança de faixa no balanço geral'}.`);
   return frases;
 }
 /* ═══════════════════════════════════════════════════════════════════
@@ -1997,7 +2211,8 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
     dificuldadeDisciplina: base && base.dificuldadeDisciplina ? { ...base.dificuldadeDisciplina } : { tem: false, texto: '' },
     niveis: base ? { ...base.niveis } : nv(3, 3, 3),
     areasDesc: base && base.areasDesc ? { ...base.areasDesc } : Object.fromEntries(AREAS_DESC.map(x => [x.id, ''])),
-    manifestacoes: base ? JSON.parse(JSON.stringify(base.manifestacoes)) : JSON.parse(JSON.stringify(SEM_MANIF)),
+    manifestacoes: normalizarManifestacoes(base ? base.manifestacoes : null),
+    comentariosBloco: comentariosBlocoDe(base),
     observacoes: base ? base.observacoes : '',
     adaptacao: base ? { ...base.adaptacao } : { necessita: false, quais: '' },
     acessibilidades: acessibilidadesDe(base),
@@ -2012,6 +2227,7 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
   const setNivel = (id, v) => setF(x => ({ ...x, niveis: { ...x.niveis, [id]: v } }));
   const setArea = (id, v) => setF(x => ({ ...x, areasDesc: { ...x.areasDesc, [id]: v } }));
   const setManif = (id, campo, v) => setF(x => ({ ...x, manifestacoes: { ...x.manifestacoes, [id]: { ...x.manifestacoes[id], [campo]: v } } }));
+  const setComentarioBloco = (id, v) => setF(x => ({ ...x, comentariosBloco: { ...x.comentariosBloco, [id]: v } }));
 
   const perfisAtuais = useMemo(() => perfisDe(f.niveis), [f.niveis]);
   const criticos = useMemo(() => ITENS.filter(i => f.niveis[i.id] >= 4), [f.niveis]);
@@ -2103,12 +2319,23 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[10.5px] uppercase tracking-[0.12em] text-tinta-400 font-semibold">Média do bloco</p>
-                      <p className="font-serif text-xl font-semibold" style={{ color: b.cor }}>{nl(perfisAtuais[b.id])}</p>
+                      <p className="text-[10.5px] uppercase tracking-[0.12em] text-tinta-400 font-semibold">Faixa predominante</p>
+                      <p className="mt-0.5 text-[12px] font-semibold" style={{ color: b.cor }}>{rotuloDesempenho(desempenho(perfisAtuais[b.id]))}</p>
                     </div>
                   </div>
                   <div className="mt-3">
                     {b.itens.map(i => <LinhaItem key={i.id} item={i} valor={f.niveis[i.id]} aoMudar={setNivel} cor={b.cor} />)}
+                  </div>
+                  <div className="mt-5 border-t border-pei-100 pt-5">
+                    <CampoTexto
+                      rotulo={`Comentário sobre ${minusculo(b.nome)}`}
+                      ajuda="Registre exemplos, situações ou diferenças de contexto que ajudem a interpretar as marcações deste bloco."
+                      valor={f.comentariosBloco[b.id]}
+                      aoMudar={v => setComentarioBloco(b.id, v)}
+                      linhas={2}
+                      max={700}
+                      placeholder="Ex.: responde melhor quando a atividade é apresentada em etapas e com um exemplo inicial."
+                    />
                   </div>
                 </Cartao>
               ))}
@@ -2132,7 +2359,7 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
                 <h3 className="font-serif text-lg font-semibold text-tinta-900">{poliv ? '5' : '6'}. O aluno apresenta?</h3>
                 <p className="text-[12.5px] text-tinta-500 mt-1 mb-4">Marque sim apenas para o que você observou diretamente. Ao marcar sim, descreva como se manifesta.</p>
                 <div className="space-y-3">
-                  {MANIFESTACOES.map(m => (
+                  {MANIFESTACOES.filter(m => !m.somenteFund1 || poliv).map(m => (
                     <div key={m.id} className={`rounded-xl px-4 py-3.5 ring-1 ring-inset transition-colors ${f.manifestacoes[m.id].sim ? 'bg-pei-50/60 ring-pei-200' : 'bg-white ring-pei-100'}`}>
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <span className="text-[13.5px] text-tinta-800">{m.rotulo}</span>
@@ -2195,7 +2422,7 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
 
                 <dl className="mt-5 pt-5 border-t border-pei-100 space-y-3 text-[13px]">
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Itens em nível 4 ou 5</dt><dd className="font-medium text-tinta-900 tabular-nums">{criticos.length}</dd></div>
-                  <div className="flex justify-between gap-3"><dt className="text-tinta-500">Manifestações marcadas</dt><dd className="font-medium text-tinta-900 tabular-nums">{MANIFESTACOES.filter(m => f.manifestacoes[m.id].sim).length}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-tinta-500">Manifestações marcadas</dt><dd className="font-medium text-tinta-900 tabular-nums">{MANIFESTACOES.filter(m => (!m.somenteFund1 || poliv) && f.manifestacoes[m.id].sim).length}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Acessibilidade em avaliação</dt><dd className="font-medium text-tinta-900">{f.acessibilidades.avaliacao.usa ? 'Sim' : 'Não'}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Acessibilidade na rotina</dt><dd className="font-medium text-tinta-900">{f.acessibilidades.rotina.usa ? 'Sim' : 'Não'}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Recurso assistivo/material</dt><dd className="font-medium text-tinta-900">{f.acessibilidades.recursos.usa ? 'Sim' : 'Não'}</dd></div>
@@ -2463,7 +2690,7 @@ function FichaAEE({ alunos, alunoId, setAlunoId, aoEnviar }) {
        acompanhamento e quais professores respondem por cada um.
    ═══════════════════════════════════════════════════════════════ */
 
-function ChipDocente({ docente, resposta, aoAlternar }) {
+function ChipDocente({ docente, resposta, aoAlternar, bloqueado = false }) {
   const atribuido = !!resposta;
   const enviada = atribuido && resposta.status === 'Enviado';
   const rotulo = docente.disciplina || docente.papel;
@@ -2471,14 +2698,14 @@ function ChipDocente({ docente, resposta, aoAlternar }) {
   return (
     <button
       type="button"
-      onClick={() => !enviada && aoAlternar(docente)}
-      disabled={enviada}
-      title={enviada ? `Ficha já enviada em ${formatarData(resposta.enviadoEm)} — não pode ser removida` : atribuido ? 'Clique para remover a atribuição' : 'Clique para atribuir'}
+      onClick={() => !enviada && !bloqueado && aoAlternar(docente)}
+      disabled={enviada || bloqueado}
+      title={bloqueado ? 'Apenas a psicóloga responsável pela turma pode alterar esta equipe' : enviada ? `Ficha já enviada em ${formatarData(resposta.enviadoEm)} — não pode ser removida` : atribuido ? 'Clique para remover a atribuição' : 'Clique para atribuir'}
       className={`group flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-all duration-200 ring-1 ring-inset ${
         enviada ? 'bg-sabia-50 ring-sabia-200 cursor-default'
         : atribuido ? 'bg-pei-50 ring-pei-300 hover:ring-telha-300 hover:bg-telha-50'
         : 'bg-white ring-pei-200 hover:ring-pei-400 hover:bg-pei-50/50'
-      }`}
+      } ${bloqueado ? 'cursor-not-allowed opacity-60' : ''}`}
     >
       <span className={`mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md ring-1 transition ${
         enviada ? 'bg-sabia-600 ring-sabia-600 text-white'
@@ -2496,13 +2723,13 @@ function ChipDocente({ docente, resposta, aoAlternar }) {
   );
 }
 
-function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE, aoIncluir, aoRemoverAluno, irPara }) {
+function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE, aoIncluir, aoRemoverAluno, irPara, responsaveisTurma, aoAtribuirPsicologa, psicologaAtual }) {
   const [segmento, setSegmento] = useState('Todos');
   const [aberto, setAberto] = useState(null);
-  const [outros, setOutros] = useState({});
 
   const turmas = TURMAS.filter(t => segmento === 'Todos' || t.segmento === segmento);
   const noCiclo = alunos.length;
+  const totalMatriculados = alunos.length + MATRICULADOS.filter(m => !alunos.some(a => a.matriculaId === m.id)).length;
   const totalAtribuicoes = alunos.reduce((s, a) => s + a.respostas.length, 0);
   const totalPendentes = alunos.reduce((s, a) => s + pendentes(a).length, 0);
   const totalAEE = alunos.filter(frequentaAEE).length;
@@ -2512,8 +2739,8 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
     <div className="space-y-7">
       <TituloSecao
         sobretitulo="Psicologia · montagem do ciclo"
-        titulo="Atribuições"
-        descricao={`Defina quais alunos entram no acompanhamento em ${PERIODO_ATUAL}, quais professores respondem e quem frequenta a Sala de Recursos. O AEE só recebe o estudante depois dessa marcação.`}
+        titulo="Turmas, triagem e atribuições"
+        descricao={`Atribua cada turma a uma psicóloga. A responsável visualiza a lista completa, marca quem necessita de PEI e então define professores, aulas integradas e participação na Sala de Recursos.`}
       />
 
       {semProfessor.length > 0 && (
@@ -2529,7 +2756,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
 
       <Cartao className="grid sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-pei-100">
         {[
-          { rot: noCiclo === 1 ? 'aluno no acompanhamento' : 'alunos no acompanhamento', val: noCiclo, ic: 'pessoas', tom: 'bg-pei-50 ring-pei-200 text-pei-600' },
+          { rot: 'estudantes nas listas de turma', val: totalMatriculados, ic: 'pessoas', tom: 'bg-pei-50 ring-pei-200 text-pei-600' },
           { rot: totalAtribuicoes === 1 ? 'atribuição ativa' : 'atribuições ativas', val: totalAtribuicoes, ic: 'lista', tom: 'bg-lilas-50 ring-lilas-200 text-lilas-500' },
           { rot: totalPendentes === 1 ? 'ficha pendente' : 'fichas pendentes', val: totalPendentes, ic: 'ficha', tom: 'bg-ambar-50 ring-ambar-200 text-ambar-500' },
           { rot: 'estudantes na Sala de Recursos', val: totalAEE, ic: 'faisca', tom: 'bg-sabia-50 ring-sabia-200 text-sabia-600' }
@@ -2551,26 +2778,42 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
           const daTurma = alunos.filter(a => a.turmaId === t.id);
           const candidatos = MATRICULADOS.filter(m => m.turmaId === t.id && !alunos.some(a => a.matriculaId === m.id));
           const docentes = docentesDoSegmento(t.segmento);
-          const verOutros = !!outros[t.id];
+          const docentesRegulares = docentes.filter(d => !d.integrada);
+          const docentesIntegradas = docentes.filter(d => d.integrada);
+          const responsavel = PSICOLOGAS.find(p => p.id === responsaveisTurma[t.id]) || null;
+          const podeTriar = !!responsavel && responsavel.nome === psicologaAtual;
+          const totalTurma = daTurma.length + candidatos.length;
 
           return (
             <Cartao key={t.id} className="animar-item overflow-hidden" style={{ animationDelay: `${ti * 55}ms` }}>
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-pei-100 bg-pei-50/40">
+              <div className="flex flex-wrap items-center justify-between gap-4 px-5 sm:px-6 py-4 border-b border-pei-100 bg-pei-50/40">
                 <div>
                   <h3 className="font-serif text-[17px] font-semibold text-tinta-900">{t.nome}</h3>
-                  <p className="text-[12.5px] text-tinta-500 mt-0.5">{t.segmento} · turno {t.turno} · {docentes.length} professores disponíveis</p>
+                  <p className="text-[12.5px] text-tinta-500 mt-0.5">{t.segmento} · turno {t.turno} · {totalTurma} estudantes · {daTurma.length} com indicação de PEI</p>
                 </div>
-                <span className="text-[12.5px] text-tinta-500">
-                  {daTurma.length === 0 ? 'nenhum aluno no acompanhamento' : `${daTurma.length} ${daTurma.length === 1 ? 'aluno' : 'alunos'} no acompanhamento`}
-                </span>
+                <label className="w-full min-w-[230px] sm:w-auto">
+                  <span className="mb-1.5 block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-tinta-400">Psicóloga responsável</span>
+                  <select value={responsaveisTurma[t.id] || ''} onChange={e => aoAtribuirPsicologa(t.id, e.target.value)}
+                    className="w-full rounded-xl border-0 bg-white px-3.5 py-2.5 text-[12.5px] font-medium text-tinta-800 ring-1 ring-inset ring-pei-200 focus:ring-2 focus:ring-pei-400 outline-none">
+                    <option value="">Selecione…</option>
+                    {PSICOLOGAS.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                </label>
               </div>
+
+              {!podeTriar && (
+                <div className="flex items-start gap-3 border-b border-pei-100 bg-slate-50 px-5 py-3 sm:px-6">
+                  <Icone nome="cadeado" className="mt-0.5 h-4 w-4 shrink-0 text-tinta-400" />
+                  <p className="text-[12px] leading-relaxed text-tinta-500">A triagem desta turma está com <strong className="font-medium text-tinta-700">{responsavel ? responsavel.nome : 'nenhuma psicóloga'}</strong>. Você pode consultar a lista ou atribuir a turma a si para editar.</p>
+                </div>
+              )}
 
               {daTurma.length > 0 && (
                 <ul className="divide-y divide-pei-100">
                   {daTurma.map(a => {
                     const expandido = aberto === a.id;
                     const envs = enviadas(a);
-                    const podeRemover = envs.length === 0 && !a.documentos.estudo && !a.documentos.pei;
+                    const podeRemover = envs.length === 0 && !a.documentos.relatorio && !a.documentos.estudo && !a.documentos.pei;
                     return (
                       <li key={a.id}>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 sm:px-6 py-4">
@@ -2579,6 +2822,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
                             <p className="text-[14.5px] font-medium text-tinta-900 leading-snug">{a.nome}</p>
                             <div className="flex flex-wrap items-center gap-2 mt-1.5">
                               <Etiqueta tom="pei">{a.categoria}</Etiqueta>
+                              <Etiqueta tom="sabia">PEI necessário</Etiqueta>
                               {a.respostas.length === 0 ? (
                                 <Etiqueta tom="ambar">sem professor atribuído</Etiqueta>
                               ) : (
@@ -2590,8 +2834,8 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <Botao variante="secundario" className="px-3.5 py-2 text-[13px]" onClick={() => setAberto(expandido ? null : a.id)}>
-                              {expandido ? 'Fechar' : 'Definir professores'}
+                            <Botao variante="secundario" className="px-3.5 py-2 text-[13px]" disabled={!podeTriar} onClick={() => setAberto(expandido ? null : a.id)}>
+                              {expandido ? 'Fechar' : 'Definir equipe'}
                               <span className={`transition-transform duration-200 ${expandido ? 'rotate-180' : ''}`}><Icone nome="baixo" className="h-3.5 w-3.5" /></span>
                             </Botao>
                           </div>
@@ -2604,22 +2848,36 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
                                 Quem responde por {primeiroNome(a.nome)}
                               </p>
                               <div className="flex flex-wrap gap-2">
-                                <Botao variante="fantasma" className="px-3 py-1.5 text-[12.5px]" onClick={() => aoAtribuirTodos(a.id)}>
+                                <Botao variante="fantasma" className="px-3 py-1.5 text-[12.5px]" disabled={!podeTriar} onClick={() => aoAtribuirTodos(a.id)}>
                                   Atribuir todos os professores
                                 </Botao>
                                 {podeRemover && (
-                                  <Botao variante="fantasma" className="px-3 py-1.5 text-[12.5px] !text-telha-500 hover:!bg-telha-50" onClick={() => aoRemoverAluno(a.id)}>
-                                    Retirar do acompanhamento
+                                  <Botao variante="fantasma" className="px-3 py-1.5 text-[12.5px] !text-telha-500 hover:!bg-telha-50" disabled={!podeTriar} onClick={() => aoRemoverAluno(a.id)}>
+                                    Retirar indicação de PEI
                                   </Botao>
                                 )}
                               </div>
                             </div>
 
                             <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                              {docentes.map(d => (
-                                <ChipDocente key={d.id} docente={d} resposta={respostaDoDocente(a, d)} aoAlternar={dd => aoAlternarDocente(a.id, dd)} />
+                              {docentesRegulares.map(d => (
+                                <ChipDocente key={d.id} docente={d} resposta={respostaDoDocente(a, d)} bloqueado={!podeTriar} aoAlternar={dd => aoAlternarDocente(a.id, dd)} />
                               ))}
                             </div>
+
+                            {docentesIntegradas.length > 0 && (
+                              <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-inset ring-pei-200">
+                                <div className="mb-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-600">Aulas integradas · Fundamental I</p>
+                                  <p className="mt-1 text-[11.5px] leading-relaxed text-tinta-500">Maker, Educação Física, Artes, Ética, Inglês e Laboratório de Ciências podem receber uma ficha própria quando participarem do acompanhamento.</p>
+                                </div>
+                                <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                                  {docentesIntegradas.map(d => (
+                                    <ChipDocente key={d.id} docente={d} resposta={respostaDoDocente(a, d)} bloqueado={!podeTriar} aoAlternar={dd => aoAlternarDocente(a.id, dd)} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
                             <div className="mt-5 border-t border-pei-100 pt-5">
                               <div className={`rounded-2xl p-4 ring-1 ring-inset transition ${frequentaAEE(a) ? 'bg-lilas-50/60 ring-lilas-200' : 'bg-white ring-pei-200'}`}>
@@ -2631,7 +2889,7 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
                                       <p className="mt-1 text-[12px] leading-relaxed text-tinta-500">Somente a psicologia libera o estudante para a equipe de AEE.</p>
                                     </div>
                                   </div>
-                                  <SimNao valor={frequentaAEE(a)} aoMudar={valor => aoAlternarAEE(a.id, valor)} />
+                                  {podeTriar ? <SimNao valor={frequentaAEE(a)} aoMudar={valor => aoAlternarAEE(a.id, valor)} /> : <Etiqueta tom={frequentaAEE(a) ? 'lilas' : 'neutro'}>{frequentaAEE(a) ? 'Sim' : 'Não'}</Etiqueta>}
                                 </div>
 
                                 {frequentaAEE(a) && (
@@ -2664,28 +2922,24 @@ function Atribuicoes({ alunos, aoAlternarDocente, aoAtribuirTodos, aoAlternarAEE
 
               {candidatos.length > 0 && (
                 <div className={`px-5 sm:px-6 py-4 ${daTurma.length ? 'border-t border-pei-100' : ''} bg-white`}>
-                  <button onClick={() => setOutros(o => ({ ...o, [t.id]: !o[t.id] }))}
-                    className="flex items-center gap-2 text-[13px] font-medium text-pei-600 hover:text-pei-800 transition">
-                    <span className={`transition-transform duration-200 ${verOutros ? 'rotate-180' : ''}`}><Icone nome="baixo" className="h-3.5 w-3.5" /></span>
-                    Outros alunos da turma com laudo registrado ({candidatos.length})
-                  </button>
-
-                  {verOutros && (
-                    <ul className="animar-item mt-3.5 space-y-2">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta-400">Demais estudantes da turma</p>
+                    <Etiqueta>{candidatos.length} sem indicação de PEI</Etiqueta>
+                  </div>
+                    <ul className="space-y-2">
                       {candidatos.map(m => (
                         <li key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-pei-50/50 ring-1 ring-inset ring-pei-100 px-4 py-3">
                           <Avatar nome={m.nome} tamanho="sm" />
                           <div className="min-w-0 flex-1">
                             <p className="text-[14px] font-medium text-tinta-800 leading-snug">{m.nome}</p>
-                            <p className="text-[12px] text-tinta-500 mt-0.5">{m.idade} anos · laudo registrado na secretaria: {m.hipotese}</p>
+                            <p className="text-[12px] text-tinta-500 mt-0.5">{m.idade} anos · hipótese/necessidade registrada para triagem: {m.hipotese}</p>
                           </div>
-                          <Botao className="px-3.5 py-2 text-[13px] shrink-0" onClick={() => aoIncluir(m.id)}>
-                            Incluir no acompanhamento
+                          <Botao className="px-3.5 py-2 text-[13px] shrink-0" disabled={!podeTriar} onClick={() => aoIncluir(m.id)}>
+                            Marcar necessidade de PEI
                           </Botao>
                         </li>
                       ))}
                     </ul>
-                  )}
                 </div>
               )}
             </Cartao>
@@ -2728,7 +2982,9 @@ function CartaoResposta({ resposta }) {
   const [bloco, setBloco] = useState('cognitivo');
   const enviada = resposta.status === 'Enviado';
   const perfis = enviada ? perfisDe(resposta.niveis) : null;
-  const manifs = enviada ? MANIFESTACOES.filter(m => resposta.manifestacoes[m.id].sim) : [];
+  const manifestacoes = normalizarManifestacoes(resposta.manifestacoes);
+  const comentarios = comentariosBlocoDe(resposta);
+  const manifs = enviada ? MANIFESTACOES.filter(m => manifestacoes[m.id].sim) : [];
   const acess = acessibilidadesDe(resposta);
 
   return (
@@ -2771,6 +3027,12 @@ function CartaoResposta({ resposta }) {
               ))}
             </div>
             <ItensDoBloco bloco={bloco} niveis={resposta.niveis} destaque />
+            {comentarios[bloco] && (
+              <div className="mt-3 rounded-xl bg-pei-50/70 px-3.5 py-3 ring-1 ring-inset ring-pei-100">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.11em] text-pei-600">Comentário do professor sobre este bloco</p>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-tinta-600">{comentarios[bloco]}</p>
+              </div>
+            )}
           </div>
 
           {resposta.areasDesc && (
@@ -2791,7 +3053,7 @@ function CartaoResposta({ resposta }) {
                 {manifs.map(m => (
                   <div key={m.id} className="rounded-lg bg-lilas-50 ring-1 ring-inset ring-lilas-200 px-3 py-2">
                     <p className="text-[12.5px] font-medium text-lilas-600">{m.rotulo}</p>
-                    {resposta.manifestacoes[m.id].texto && <p className="text-[12px] text-tinta-600 leading-relaxed mt-1">{resposta.manifestacoes[m.id].texto}</p>}
+                    {manifestacoes[m.id].texto && <p className="text-[12px] text-tinta-600 leading-relaxed mt-1">{manifestacoes[m.id].texto}</p>}
                   </div>
                 ))}
               </div>
@@ -2874,12 +3136,130 @@ function CartaoRespostaAEE({ aluno }) {
   );
 }
 
-function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbrirAtribuicoes }) {
-  const [segmento, setSegmento] = useState('Todos');
-  const [bloco, setBloco] = useState('Todos');
-  const [aberto, setAberto] = useState('a4');
+function PainelFontesESintese({ aluno, aoAnexar, aoSalvarAMI, aoGerarSintese, aoEditarSintese }) {
+  const [ami, setAmi] = useState(aluno.comentarioAMI ? aluno.comentarioAMI.texto : '');
+  const [editandoSintese, setEditandoSintese] = useState(false);
+  useEffect(() => {
+    setAmi(aluno.comentarioAMI ? aluno.comentarioAMI.texto : '');
+    setEditandoSintese(false);
+  }, [aluno.id]);
 
-  const filtrados = alunos.filter(a => segmento === 'Todos' || a.segmento === segmento);
+  const amiMudou = ami.trim() !== (aluno.comentarioAMI ? aluno.comentarioAMI.texto.trim() : '');
+  const anexos = aluno.anexos || [];
+  const tipos = [
+    { categoria: 'Laudo', icone: 'caixa', ajuda: 'Laudo clínico ou documento de referência' },
+    { categoria: 'Avaliação', icone: 'ficha', ajuda: 'Avaliação psicológica ou psicopedagógica' }
+  ];
+
+  return (
+    <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
+      <div className="space-y-4">
+        <div className="rounded-2xl bg-white p-5 ring-1 ring-inset ring-pei-200">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-600">Documentos do setor de psicologia</p>
+              <h4 className="mt-1 font-serif text-[17px] font-semibold text-tinta-900">Laudos e avaliações</h4>
+              <p className="mt-1 text-[12px] leading-relaxed text-tinta-500">Anexe as fontes complementares do caso.</p>
+            </div>
+            <Etiqueta tom={anexos.length ? 'sabia' : 'neutro'}>{anexos.length} {anexos.length === 1 ? 'arquivo' : 'arquivos'}</Etiqueta>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {tipos.map(tipo => (
+              <label key={tipo.categoria} className="cursor-pointer rounded-xl border border-dashed border-pei-300 bg-pei-50/50 px-4 py-3 transition hover:border-pei-500 hover:bg-pei-50">
+                <input type="file" accept=".pdf,.doc,.docx,image/*" className="sr-only" onChange={e => {
+                  const arquivo = e.target.files && e.target.files[0];
+                  if (arquivo) aoAnexar(aluno.id, tipo.categoria, arquivo);
+                  e.target.value = '';
+                }} />
+                <span className="flex items-center gap-2 text-[12.5px] font-semibold text-pei-700"><Icone nome={tipo.icone} className="h-4 w-4" />Anexar {tipo.categoria.toLowerCase()}</span>
+                <span className="mt-1 block text-[10.5px] leading-snug text-tinta-400">{tipo.ajuda}</span>
+              </label>
+            ))}
+          </div>
+
+          {anexos.length ? (
+            <ul className="mt-4 space-y-2">
+              {anexos.map(anexo => (
+                <li key={anexo.id} className="flex items-start gap-3 rounded-xl bg-slate-50 px-3.5 py-3 ring-1 ring-inset ring-slate-200">
+                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-pei-600 ring-1 ring-slate-200"><Icone nome="caixa" className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-medium text-tinta-800">{anexo.nome}</p>
+                    <p className="mt-0.5 text-[10.5px] text-tinta-400">{anexo.categoria} · {anexo.tamanho} · {formatarData(anexo.adicionadoEm)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="mt-4 rounded-xl bg-slate-50 px-3.5 py-3 text-[11.5px] text-tinta-400">Nenhum documento complementar anexado.</p>}
+
+          <p className="mt-3 text-[10.5px] leading-relaxed text-tinta-400">Nesta demonstração, o arquivo fica apenas em memória e a síntese registra seu nome e tipo. Em produção, o conteúdo seria processado com segurança no servidor.</p>
+        </div>
+
+        <div className="rounded-2xl bg-lilas-50/60 p-5 ring-1 ring-inset ring-lilas-200">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-lilas-600">Contribuição recebida</p>
+          <h4 className="mt-1 font-serif text-[17px] font-semibold text-tinta-900">Comentário da AMI</h4>
+          <textarea value={ami} maxLength={2200} rows={5} onChange={e => setAmi(e.target.value)}
+            placeholder="Registre a contribuição recebida da AMI e complemente com as observações necessárias."
+            className="mt-3 w-full resize-y rounded-xl border-0 bg-white px-4 py-3 text-[13px] leading-relaxed text-tinta-800 ring-1 ring-inset ring-lilas-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-lilas-400 outline-none" />
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[10.5px] tabular-nums text-tinta-400">{ami.length}/2.200 caracteres</span>
+            <Botao variante="secundario" className="px-3.5 py-2 text-[12.5px]" disabled={!amiMudou} onClick={() => aoSalvarAMI(aluno.id, ami)}>
+              <Icone nome="check" className="h-3.5 w-3.5" />Salvar comentário AMI
+            </Botao>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-gradient-to-b from-pei-800 to-pei-900 p-1 shadow-card">
+        <div className="h-full rounded-[13px] bg-white p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-pei-100 pb-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-600">Leitura integrada do caso</p>
+              <h4 className="mt-1 font-serif text-[19px] font-semibold text-tinta-900">Síntese completa de todas as fontes</h4>
+              <p className="mt-1 text-[12px] leading-relaxed text-tinta-500">Une respostas, comentários, AEE, AMI, psicologia e documentos anexados.</p>
+            </div>
+            {aluno.sintese && <Selo status={aluno.sintese.status || 'Rascunho'} tamanho="sm" />}
+          </div>
+
+          {!aluno.sintese ? (
+            <div className="grid min-h-[310px] place-items-center py-8 text-center">
+              <div>
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-pei-50 text-pei-600 ring-1 ring-pei-200"><Icone nome="faisca" className="h-5 w-5" /></span>
+                <p className="mt-4 text-[13px] leading-relaxed text-tinta-500">A síntese pode ser gerada assim que houver ao menos uma ficha docente enviada.</p>
+                <Botao className="mt-4" onClick={() => aoGerarSintese(aluno.id)}><Icone nome="faisca" className="h-4 w-4" />Gerar síntese completa</Botao>
+              </div>
+            </div>
+          ) : (
+            <>
+              {editandoSintese ? (
+                <textarea value={aluno.sintese.texto} rows={20} onChange={e => aoEditarSintese(aluno.id, e.target.value)}
+                  className="mt-5 w-full resize-y rounded-xl border-0 bg-slate-50 px-4 py-4 font-serif text-[13.5px] leading-[1.75] text-tinta-800 ring-1 ring-inset ring-slate-200 focus:bg-white focus:ring-2 focus:ring-pei-400 outline-none" />
+              ) : (
+                <div className="mt-5 max-h-[520px] overflow-y-auto pr-2 font-serif text-[13.5px] leading-[1.75] text-tinta-700"><CorpoDocumento texto={aluno.sintese.texto} /></div>
+              )}
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-pei-100 pt-4">
+                <Botao variante="secundario" className="px-3.5 py-2 text-[12.5px]" onClick={() => setEditandoSintese(v => !v)}>{editandoSintese ? 'Concluir edição' : 'Editar síntese'}</Botao>
+                <Botao variante="fantasma" className="px-3.5 py-2 text-[12.5px]" onClick={() => aoGerarSintese(aluno.id)}>Gerar novamente</Botao>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbrirAtribuicoes, aoAnexar, aoSalvarAMI, aoGerarSintese, aoEditarSintese }) {
+  const [segmento, setSegmento] = useState('Todos');
+  const [area, setArea] = useState('Todas');
+  const [bloco, setBloco] = useState('Todos');
+  const [aberto, setAberto] = useState('a1');
+
+  const areasDisponiveis = [...new Set(alunos.flatMap(a => a.respostas.map(r => r.disciplina || r.area)))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const filtrados = alunos.filter(a =>
+    (segmento === 'Todos' || a.segmento === segmento)
+    && (area === 'Todas' || a.respostas.some(r => (r.disciplina || r.area) === area))
+  );
   const totalEsperadas = alunos.reduce((s, a) => s + a.respostas.length, 0);
   const totalEnviadas = alunos.reduce((s, a) => s + enviadas(a).length, 0);
   const aeeEsperadas = alunos.filter(frequentaAEE).length;
@@ -2913,13 +3293,19 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Filtro rotulo="Segmento:" opcoes={['Todos', ...SEGMENTOS]} valor={segmento} aoMudar={setSegmento} />
+        <label className="flex items-center gap-2 text-[12px] text-tinta-400">
+          Área/aula:
+          <select value={area} onChange={e => setArea(e.target.value)} className="min-w-[190px] rounded-xl border-0 bg-white px-3.5 py-2 text-[12.5px] font-medium text-tinta-700 shadow-suave ring-1 ring-inset ring-pei-200 focus:ring-2 focus:ring-pei-400 outline-none">
+            {['Todas', ...areasDisponiveis].map(opcao => <option key={opcao}>{opcao}</option>)}
+          </select>
+        </label>
         <Filtro rotulo="Destacar perfil:" opcoes={['Todos', ...BLOCOS.map(b => b.curto)]} valor={bloco} aoMudar={setBloco} />
       </div>
 
       {filtrados.length === 0 ? (
-        <EstadoVazio icone="caixa" titulo="Nenhum aluno neste segmento"
-          texto="Não há alunos acompanhados no segmento selecionado. Ajuste o filtro para ver os demais."
-          acao={<Botao variante="secundario" onClick={() => setSegmento('Todos')}>Ver todos os segmentos</Botao>} />
+        <EstadoVazio icone="caixa" titulo="Nenhum aluno com estes filtros"
+          texto="Não há respostas na combinação de segmento e área selecionada. Limpe os filtros para ver todas as contribuições."
+          acao={<Botao variante="secundario" onClick={() => { setSegmento('Todos'); setArea('Todas'); }}>Limpar filtros</Botao>} />
       ) : (
         <div className="space-y-3">
           {filtrados.map((a, i) => {
@@ -2954,9 +3340,13 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
                     <Barra valor={envs.length} total={a.respostas.length} tom={completo ? 'bg-sabia-500' : 'bg-ambar-400'} />
                   </div>
 
-                  <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-start">
+                  <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:w-auto sm:shrink-0 sm:justify-start">
                     {a.comentario && <span className="text-lilas-500" title="Comentário da psicologia registrado"><Icone nome="balao" className="h-4 w-4" /></span>}
                     {frequentaAEE(a) && <div className="text-right"><p className="text-[10.5px] uppercase tracking-[0.1em] text-tinta-400 font-semibold mb-1">AEE</p><Selo status={statusFluxoAEE(a)} tamanho="sm" /></div>}
+                    <div className="text-right">
+                      <p className="text-[10.5px] uppercase tracking-[0.1em] text-tinta-400 font-semibold mb-1">Relatório</p>
+                      <Selo status={statusDoc(a.documentos.relatorio)} tamanho="sm" />
+                    </div>
                     <div className="text-right">
                       <p className="text-[10.5px] uppercase tracking-[0.1em] text-tinta-400 font-semibold mb-1">Estudo</p>
                       <Selo status={statusDoc(a.documentos.estudo)} tamanho="sm" />
@@ -2991,17 +3381,22 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
                     )}
 
                     <div className="grid gap-3 xl:grid-cols-2">
-                      {a.respostas.map(r => <CartaoResposta key={r.area + r.professor} resposta={r} />)}
+                      {a.respostas.filter(r => area === 'Todas' || (r.disciplina || r.area) === area).map(r => <CartaoResposta key={r.area + r.professor} resposta={r} />)}
                     </div>
 
                     <CartaoRespostaAEE aluno={a} />
+
+                    {envs.length > 0 && (
+                      <PainelFontesESintese aluno={a} aoAnexar={aoAnexar} aoSalvarAMI={aoSalvarAMI}
+                        aoGerarSintese={aoGerarSintese} aoEditarSintese={aoEditarSintese} />
+                    )}
 
                     {cons && (
                       <div className="mt-4 rounded-xl bg-white ring-1 ring-inset ring-pei-200 p-4">
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                           <div>
                             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-pei-600">Perfil consolidado</p>
-                            <p className="text-[12px] text-tinta-500 mt-1">Média das {envs.length} fichas recebidas · desempenho {nl(desempenho(mediaGeral(cons.perfis)))}/5</p>
+                            <p className="text-[12px] text-tinta-500 mt-1">Leitura por predominância em {envs.length} fichas · sem cálculo de média</p>
                           </div>
                           <Botao variante="fantasma" className="px-3 py-1.5 text-[12.5px]" onClick={() => aoAbrirAluno(a.id)}>
                             Ver prontuário<Icone nome="seta" className="h-3.5 w-3.5" />
@@ -3038,6 +3433,11 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
                     )}
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Botao variante={a.documentos.relatorio ? 'secundario' : 'primario'} disabled={!envs.length}
+                        titulo={!envs.length ? 'É preciso ao menos uma ficha enviada' : undefined}
+                        onClick={() => (a.documentos.relatorio ? aoAbrirDoc(a.id, 'relatorio') : aoGerar(a.id, 'relatorio'))}>
+                        <Icone nome="ficha" className="h-4 w-4" />{a.documentos.relatorio ? 'Abrir relatório escolar' : 'Gerar relatório escolar'}
+                      </Botao>
                       <Botao variante={a.documentos.estudo ? 'secundario' : 'primario'} disabled={!envs.length || (!a.documentos.estudo && aeePendente)}
                         titulo={!envs.length ? 'É preciso ao menos uma ficha enviada' : (!a.documentos.estudo && aeePendente) ? 'Aguardar a resposta do AEE' : undefined}
                         onClick={() => (a.documentos.estudo ? aoAbrirDoc(a.id, 'estudo') : aoGerar(a.id, 'estudo'))}>
@@ -3049,7 +3449,7 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
                         <Icone nome="plano" className="h-4 w-4" />{a.documentos.pei ? 'Abrir PEI' : 'Gerar PEI'}
                       </Botao>
                       {!envs.length && <span className="text-[12px] text-tinta-400">Os documentos só podem ser gerados a partir de pelo menos uma ficha enviada.</span>}
-                      {envs.length > 0 && aeePendente && (!a.documentos.estudo || !a.documentos.pei) && <span className="text-[12px] text-ambar-600">Este estudante frequenta a Sala de Recursos. Aguarde a contribuição do AEE antes de gerar os documentos.</span>}
+                      {envs.length > 0 && aeePendente && (!a.documentos.estudo || !a.documentos.pei) && <span className="text-[12px] text-ambar-600">Este estudante frequenta a Sala de Recursos. Aguarde a contribuição do AEE antes de gerar o estudo de caso e o PEI.</span>}
                     </div>
                   </div>
                 )}
@@ -3062,10 +3462,17 @@ function RespostasProfessores({ alunos, aoGerar, aoAbrirDoc, aoAbrirAluno, aoAbr
   );
 }
 /* ═══════════════════════════════════════════════════════════════════
-   10. DOCUMENTO — estudo de caso e PEI usam a mesma tela
+   10. DOCUMENTO — relatório, estudo de caso e PEI usam a mesma tela
    ═══════════════════════════════════════════════════════════════ */
 
 const TIPOS_DOC = {
+  relatorio: {
+    nome: 'Relatório de acompanhamento', acao: 'relatório', titulo: 'Relatório de Acompanhamento Escolar',
+    sobretitulo: 'Acompanhamento docente', icone: 'ficha',
+    descricao: 'Documento escolar produzido a partir das respostas e dos comentários dos professores, preservando cada contexto sem cálculo de média.',
+    vazio: 'Nenhum relatório de acompanhamento em aberto',
+    vazioTexto: 'Abra a tela de respostas, escolha um aluno e clique em “Gerar relatório escolar”.'
+  },
   estudo: {
     nome: 'Estudo de caso', acao: 'estudo de caso', titulo: 'Estudo de Caso',
     sobretitulo: 'Análise das fichas', icone: 'faisca',
@@ -3249,10 +3656,10 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
   const envs = enviadas(aluno);
   const cons = consolidar(aluno);
   const completo = envs.length === aluno.respostas.length;
-  const aguardaAEE = frequentaAEE(aluno) && respostaAEE(aluno).status !== 'Enviado';
+  const aguardaAEE = tipo !== 'relatorio' && frequentaAEE(aluno) && respostaAEE(aluno).status !== 'Enviado';
   const comentarioNovo = tipo === 'pei' && aluno.comentario && !doc.texto.includes('Considerações do setor de psicologia');
   const aeeEnviado = frequentaAEE(aluno) && respostaAEE(aluno).status === 'Enviado';
-  const aeeNovo = aeeEnviado && !doc.texto.includes(tipo === 'pei' ? 'Articulação com o AEE' : 'Contribuição do AEE');
+  const aeeNovo = tipo !== 'relatorio' && aeeEnviado && !doc.texto.includes(tipo === 'pei' ? 'Articulação com o AEE' : 'Contribuição do AEE');
   const atualizacaoPendente = comentarioNovo || aeeNovo;
 
   return (
@@ -3326,7 +3733,7 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
             </div>
             <p className="text-[13px] text-tinta-500 leading-relaxed mt-3.5">
               {aprovado
-                ? 'Documento aprovado e vinculado ao prontuário do aluno. O PEI aprovado fica visível, em leitura, para os professores das turmas.'
+                ? (tipo === 'pei' ? 'Documento aprovado e vinculado ao prontuário do aluno. O PEI fica visível, em leitura, para os professores das turmas.' : `${cfg.nome} aprovado e vinculado ao prontuário do aluno.`)
                 : aguardaAEE ? 'A aprovação final está bloqueada até a equipe de AEE enviar a contribuição da Sala de Recursos.'
                 : 'O documento não é publicado automaticamente. A aprovação registra a validação humana do texto.'}
             </p>
@@ -3350,7 +3757,7 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
             </div>
           </Cartao>
 
-          <PainelComentario aluno={aluno} perfil={perfil} aoSalvar={aoComentar} tipo={tipo} />
+          {tipo !== 'relatorio' && <PainelComentario aluno={aluno} perfil={perfil} aoSalvar={aoComentar} tipo={tipo} />}
 
           <Cartao className="p-6">
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta-400">Base do documento</h4>
@@ -3381,7 +3788,7 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sabia-700">Nesta demonstração</p>
             <p className="text-[12.5px] leading-relaxed text-sabia-800/90 mt-2.5">
               O documento é composto localmente, sem nenhuma chamada de rede. Em produção, esta é a etapa que
-              consumiria o modelo de linguagem — recebendo as fichas e as suas considerações, e mantendo o mesmo
+              consumiria o modelo de linguagem — recebendo as fontes autorizadas para este tipo de documento e mantendo o mesmo
               fluxo de revisão e aprovação humana.
             </p>
           </div>
@@ -3614,8 +4021,7 @@ function PaginaAluno({ alunos, alunoId, setAlunoId, irPara, somenteLeitura }) {
                     {r.consolidado && <Etiqueta tom="pei">{r.respostas} fichas</Etiqueta>}
                   </div>
                   <p className="text-[12.5px] text-tinta-500 mt-1.5">
-                    Desempenho médio <strong className="font-medium text-tinta-700 tabular-nums">{nl(desempenho(mediaGeral(r.perfis)))}</strong>
-                    <span className="text-tinta-400">/5</span>
+                    Faixa predominante <strong className="font-medium text-tinta-700">{rotuloDesempenho(desempenho(nivelGeral(r.perfis)))}</strong>
                   </p>
                 </li>
               ))}
@@ -3658,8 +4064,8 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
   // itens que mais pesam no colégio, a partir dos perfis consolidados
   const criticidade = ITENS.map(i => {
     const vals = alunos.map(a => consolidar(a)).filter(Boolean).map(c => c.niveis[i.id]);
-    return { ...i, media: vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0, n: vals.filter(v => v >= 4).length };
-  }).sort((a, b) => b.media - a.media).slice(0, 6);
+    return { ...i, total: vals.length, n: vals.filter(v => v >= 4).length };
+  }).sort((a, b) => b.n - a.n || a.rotulo.localeCompare(b.rotulo)).slice(0, 6);
 
   const porSegmento = SEGMENTOS.map(seg => {
     const doSeg = alunos.filter(a => a.segmento === seg);
@@ -3732,14 +4138,14 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
               <div key={c.id}>
                 <div className="flex items-baseline justify-between gap-3 mb-1.5">
                   <span className="text-[12.5px] text-tinta-700 leading-snug">{c.rotulo}</span>
-                  <span className="text-[11.5px] tabular-nums text-tinta-500 shrink-0">{c.n}/{alunos.length}</span>
+                  <span className="text-[11.5px] tabular-nums text-tinta-500 shrink-0">{c.n}/{c.total}</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-pei-100 overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((c.media - 1) / 4) * 100}%`, backgroundColor: COR_BLOCO[c.bloco] }} />
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${c.total ? (c.n / c.total) * 100 : 0}%`, backgroundColor: COR_BLOCO[c.bloco] }} />
                 </div>
               </div>
             ))}
-            <p className="text-[11.5px] text-tinta-400 pt-1">A barra mostra o nível médio de dificuldade; o número, quantos alunos estão em nível 4 ou 5.</p>
+            <p className="text-[11.5px] text-tinta-400 pt-1">A barra e o número mostram quantos alunos registraram cada item em nível 4 ou 5 — sem cálculo de média.</p>
           </div>
         </Cartao>
       </div>
@@ -3780,7 +4186,7 @@ function VisaoGeral({ alunos, aoAbrirAluno }) {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {alunos.map((a, i) => {
             const regs = periodos(a);
-            const ganho = regs.length > 1 ? desempenho(mediaGeral(regs[regs.length - 1].perfis)) - desempenho(mediaGeral(regs[0].perfis)) : null;
+            const ganho = regs.length > 1 ? desempenho(nivelGeral(regs[regs.length - 1].perfis)) - desempenho(nivelGeral(regs[0].perfis)) : null;
             const t = ganho === null ? null
               : ganho >= 0.3 ? { txt: `desempenho +${nl(ganho)}`, cls: 'text-sabia-700', seta: '↑' }
               : ganho <= -0.3 ? { txt: `desempenho −${nl(Math.abs(ganho))}`, cls: 'text-telha-500', seta: '↓' }
@@ -3820,8 +4226,9 @@ const PAGINAS = {
   meusAlunos: { rotulo: 'Meus alunos', curto: 'Alunos', icone: 'pessoas', descricao: 'Turmas e pendências' },
   ficha: { rotulo: 'Ficha de observação', curto: 'Ficha', icone: 'ficha', descricao: 'Responder e enviar' },
   fichaAEE: { rotulo: 'Resposta do AEE', curto: 'Responder', icone: 'faisca', descricao: 'Registro da Sala de Recursos' },
-  atribuicoes: { rotulo: 'Atribuições', curto: 'Atribuir', icone: 'lista', descricao: 'Quem responde por quem' },
+  atribuicoes: { rotulo: 'Turmas e triagem', curto: 'Triagem', icone: 'lista', descricao: 'Responsáveis e indicação de PEI' },
   respostas: { rotulo: 'Respostas e AEE', curto: 'Respostas', icone: 'caixa', descricao: 'Contribuições por aluno' },
+  relatorio: { rotulo: 'Relatório escolar', curto: 'Relatório', icone: 'ficha', descricao: 'Acompanhamento docente' },
   estudo: { rotulo: 'Estudo de caso', curto: 'Estudo', icone: 'faisca', descricao: 'Síntese e análise' },
   pei: { rotulo: 'PEI', curto: 'PEI', icone: 'plano', descricao: 'Plano individualizado' },
   aluno: { rotulo: 'Página do aluno', curto: 'Aluno', icone: 'grafico', descricao: 'Prontuário e evolução' },
@@ -4131,12 +4538,26 @@ function NavegacaoMobile({ perfil, pagina, setPagina, marcas }) {
 // gera os textos dos documentos que já existem na semente
 function semear(base) {
   return base.map(original => {
-    const aluno = { ...original, aee: normalizarAEE(original) };
+    const respostas = original.respostas.map(r => ({
+      ...r,
+      manifestacoes: normalizarManifestacoes(r.manifestacoes),
+      comentariosBloco: comentariosBlocoDe(r)
+    }));
+    const aluno = {
+      ...original,
+      respostas,
+      aee: normalizarAEE(original),
+      anexos: JSON.parse(JSON.stringify(original.anexos || DOCUMENTOS_ANEXOS_SEMENTE[original.id] || [])),
+      comentarioAMI: original.comentarioAMI || COMENTARIOS_AMI_SEMENTE[original.id] || null,
+      sintese: original.sintese || null,
+      documentos: { ...original.documentos, relatorio: original.documentos.relatorio || null }
+    };
     const docs = {};
-    ['estudo', 'pei'].forEach(t => {
+    ['relatorio', 'estudo', 'pei'].forEach(t => {
       const d = aluno.documentos[t];
       if (!d) { docs[t] = null; return; }
-      docs[t] = { status: d.status, texto: t === 'estudo' ? gerarEstudoDeCaso(aluno) : gerarPEI(aluno) };
+      const texto = t === 'relatorio' ? gerarRelatorioAcompanhamento(aluno) : t === 'estudo' ? gerarEstudoDeCaso(aluno) : gerarPEI(aluno);
+      docs[t] = { status: d.status, texto };
     });
     return { ...aluno, documentos: docs };
   });
@@ -4150,6 +4571,7 @@ function App() {
   const [alunoId, setAlunoId] = useState(null);
   const [contexto, setContexto] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [responsaveisTurma, setResponsaveisTurma] = useState({ ...RESPONSAVEIS_TURMA_SEMENTE });
 
   const perfil = perfilId ? PERFIS[perfilId] : null;
 
@@ -4167,6 +4589,16 @@ function App() {
   }
 
   /* ── psicologia: montagem do ciclo ── */
+  function atribuirPsicologa(turmaId, psicologaId) {
+    const turma = TURMAS.find(t => t.id === turmaId);
+    const psicologa = PSICOLOGAS.find(p => p.id === psicologaId);
+    setResponsaveisTurma(atual => ({ ...atual, [turmaId]: psicologaId || null }));
+    setAviso({ texto: psicologa
+      ? `${psicologa.nome} agora é responsável pela triagem da turma ${turma.nome}.`
+      : `A turma ${turma.nome} ficou sem psicóloga responsável pela triagem.`
+    });
+  }
+
   function alternarDocente(id, docente) {
     let acao = '';
     setAlunos(lista => lista.map(a => {
@@ -4224,7 +4656,7 @@ function App() {
     const m = MATRICULADOS.find(x => x.id === matriculaId);
     if (!m) return;
     setAlunos(lista => (lista.some(a => a.matriculaId === matriculaId) ? lista : [...lista, alunoDeMatricula(m)]));
-    setAviso({ texto: `${m.nome} entrou no acompanhamento. Defina agora quais professores respondem por ${m.genero === 'f' ? 'ela' : 'ele'}.` });
+    setAviso({ texto: `${m.nome} foi marcad${m.genero === 'f' ? 'a' : 'o'} como estudante que necessita de PEI. Defina agora a equipe que responderá por ${m.genero === 'f' ? 'ela' : 'ele'}.` });
   }
 
   function removerAluno(id) {
@@ -4232,7 +4664,7 @@ function App() {
     setAlunos(lista => lista.filter(a => a.id !== id));
     if (alunoId === id) setAlunoId(null);
     if (contexto && contexto.alunoId === id) setContexto(null);
-    if (alvo) setAviso({ texto: `${alvo.nome} foi retirad${alvo.genero === 'f' ? 'a' : 'o'} do acompanhamento neste período.` });
+    if (alvo) setAviso({ texto: `A indicação de necessidade de PEI de ${alvo.nome} foi retirada deste período.` });
   }
 
   /* ── professor: envia a própria ficha ── */
@@ -4254,6 +4686,7 @@ function App() {
         niveis: { ...f.niveis },
         areasDesc: fichaPolivalente(a.segmento) ? { ...f.areasDesc } : undefined,
         manifestacoes: JSON.parse(JSON.stringify(f.manifestacoes)),
+        comentariosBloco: { ...f.comentariosBloco },
         observacoes: f.observacoes,
         adaptacao: adaptacaoLegada,
         acessibilidades,
@@ -4264,7 +4697,7 @@ function App() {
       return { ...a, respostas };
     }));
     const alvo = alunos.find(a => a.id === id);
-    setAviso({ texto: `Ficha de ${primeiroNome(alvo.nome)} enviada ao ${SETOR}. O perfil consolidado foi recalculado.` });
+    setAviso({ texto: `Ficha de ${primeiroNome(alvo.nome)} enviada ao ${SETOR}. As respostas individuais e os comentários por bloco já estão disponíveis para leitura.` });
     setPagina('meusAlunos');
   }
 
@@ -4289,7 +4722,7 @@ function App() {
   function gerarDoc(id, tipo) {
     setAlunos(lista => lista.map(a => {
       if (a.id !== id) return a;
-      const texto = tipo === 'estudo' ? gerarEstudoDeCaso(a) : gerarPEI(a);
+      const texto = tipo === 'relatorio' ? gerarRelatorioAcompanhamento(a) : tipo === 'estudo' ? gerarEstudoDeCaso(a) : gerarPEI(a);
       return { ...a, documentos: { ...a.documentos, [tipo]: { texto, status: 'Rascunho' } } };
     }));
     setContexto({ alunoId: id }); setAlunoId(id); setPagina(tipo);
@@ -4298,7 +4731,7 @@ function App() {
   function regerarDoc(id, tipo) {
     setAlunos(lista => lista.map(a => {
       if (a.id !== id) return a;
-      const texto = tipo === 'estudo' ? gerarEstudoDeCaso(a) : gerarPEI(a);
+      const texto = tipo === 'relatorio' ? gerarRelatorioAcompanhamento(a) : tipo === 'estudo' ? gerarEstudoDeCaso(a) : gerarPEI(a);
       return { ...a, documentos: { ...a.documentos, [tipo]: { texto, status: 'Rascunho' } } };
     }));
   }
@@ -4309,7 +4742,9 @@ function App() {
     setAlunos(lista => lista.map(a => (a.id === id ? { ...a, documentos: { ...a.documentos, [tipo]: { ...a.documentos[tipo], status: 'Aprovado' } } } : a)));
     const alvo = alunos.find(a => a.id === id);
     setAviso({
-      texto: tipo === 'estudo'
+      texto: tipo === 'relatorio'
+        ? `Relatório de acompanhamento escolar de ${primeiroNome(alvo.nome)} aprovado e vinculado ao prontuário.`
+        : tipo === 'estudo'
         ? `Estudo de caso de ${primeiroNome(alvo.nome)} aprovado. Você já pode gerar o PEI a partir dele.`
         : `PEI de ${primeiroNome(alvo.nome)} aprovado e disponível, em leitura, para os professores das turmas.`
     });
@@ -4327,6 +4762,41 @@ function App() {
         ? `Considerações sobre ${primeiroNome(alvo.nome)} registradas. Serão incorporadas ao PEI na próxima geração do plano.`
         : `Considerações sobre ${primeiroNome(alvo.nome)} removidas.`
     });
+  }
+
+  function anexarDocumento(id, categoria, arquivo) {
+    const tamanho = arquivo.size >= 1024 * 1024
+      ? `${(arquivo.size / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+      : `${Math.max(1, Math.round(arquivo.size / 1024))} KB`;
+    const anexo = {
+      id: `anexo-${id}-${Date.now()}`, categoria, nome: arquivo.name,
+      tamanho, adicionadoEm: HOJE_ISO, autor: PERFIS.psicologia.nome, resumo: '', arquivo
+    };
+    setAlunos(lista => lista.map(a => a.id === id ? { ...a, anexos: [...(a.anexos || []), anexo] } : a));
+    setAviso({ texto: `${categoria} “${arquivo.name}” anexado ao prontuário fictício. O arquivo permanecerá apenas em memória nesta demonstração.` });
+  }
+
+  function salvarComentarioAMI(id, texto) {
+    const limpo = texto.trim();
+    setAlunos(lista => lista.map(a => a.id === id ? {
+      ...a,
+      comentarioAMI: limpo ? { texto: limpo, autor: 'Equipe AMI', data: HOJE_ISO } : null
+    } : a));
+    const alvo = alunos.find(a => a.id === id);
+    setAviso({ texto: limpo ? `Comentário da AMI sobre ${primeiroNome(alvo.nome)} registrado.` : `Comentário da AMI sobre ${primeiroNome(alvo.nome)} removido.` });
+  }
+
+  function gerarSintese(id) {
+    setAlunos(lista => lista.map(a => a.id === id ? {
+      ...a,
+      sintese: { texto: gerarSinteseCompleta(a), status: 'Rascunho', geradaEm: HOJE_ISO }
+    } : a));
+    const alvo = alunos.find(a => a.id === id);
+    setAviso({ texto: `Síntese completa de ${primeiroNome(alvo.nome)} gerada com todas as fontes disponíveis.` });
+  }
+
+  function editarSintese(id, texto) {
+    setAlunos(lista => lista.map(a => a.id === id ? { ...a, sintese: { ...a.sintese, texto } } : a));
   }
 
   function abrirAluno(id) { setAlunoId(id); setPagina('aluno'); }
@@ -4347,7 +4817,7 @@ function App() {
     if (liberadas) { marcas.meusAlunos = liberadas; marcas.fichaAEE = liberadas; }
   }
   if (perfilId === 'psicologia') {
-    const semDoc = alunos.filter(a => enviadas(a).length && (!a.documentos.estudo || !a.documentos.pei)).length;
+    const semDoc = alunos.filter(a => enviadas(a).length && (!a.documentos.relatorio || !a.documentos.estudo || !a.documentos.pei)).length;
     const aeePendentes = alunos.filter(a => frequentaAEE(a) && respostaAEE(a).status !== 'Enviado').length;
     if (semDoc || aeePendentes) marcas.respostas = semDoc + aeePendentes;
     const semProf = alunos.filter(a => a.respostas.length === 0).length;
@@ -4405,17 +4875,19 @@ function App() {
               {pagina === 'fichaAEE' && <FichaAEE alunos={alunos} alunoId={alunoId} setAlunoId={setAlunoId} aoEnviar={enviarRespostaAEE} />}
               {pagina === 'atribuicoes' && (
                 <Atribuicoes alunos={alunos} aoAlternarDocente={alternarDocente} aoAtribuirTodos={atribuirTodos}
-                  aoAlternarAEE={alternarAEE} aoIncluir={incluirAluno} aoRemoverAluno={removerAluno} irPara={setPagina} />
+                  aoAlternarAEE={alternarAEE} aoIncluir={incluirAluno} aoRemoverAluno={removerAluno} irPara={setPagina}
+                  responsaveisTurma={responsaveisTurma} aoAtribuirPsicologa={atribuirPsicologa} psicologaAtual={perfil.nome} />
               )}
               {pagina === 'respostas' && (
                 <RespostasProfessores alunos={alunos} aoGerar={gerarDoc} aoAbrirDoc={abrirDoc} aoAbrirAluno={abrirAluno}
-                  aoAbrirAtribuicoes={() => setPagina('atribuicoes')} />
+                  aoAbrirAtribuicoes={() => setPagina('atribuicoes')} aoAnexar={anexarDocumento} aoSalvarAMI={salvarComentarioAMI}
+                  aoGerarSintese={gerarSintese} aoEditarSintese={editarSintese} />
               )}
-              {(pagina === 'estudo' || pagina === 'pei') && (
+              {(pagina === 'relatorio' || pagina === 'estudo' || pagina === 'pei') && (
                 <TelaDocumento alunos={alunos} tipo={pagina} contexto={contexto} perfil={perfil}
                   setTexto={editarTexto} aoAprovar={aprovarDoc} aoRegerar={regerarDoc} aoGerar={gerarDoc} aoComentar={comentar}
                   irPara={destino => {
-                    if (destino === 'pei' || destino === 'estudo') {
+                    if (destino === 'relatorio' || destino === 'pei' || destino === 'estudo') {
                       const alvo = alunos.find(a => a.id === contexto.alunoId);
                       if (!alvo.documentos[destino]) return gerarDoc(contexto.alunoId, destino);
                       return abrirDoc(contexto.alunoId, destino);
