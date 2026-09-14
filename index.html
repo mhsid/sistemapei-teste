@@ -1,6 +1,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sistema PEI — Redesign UX/UI (Demonstração)</title>
+<title>Sistema PEI — DEMONSTRAÇÃO (CFC)</title>
 
 <!-- ══════════════════════════════════════════════════════════════════
      DEPENDÊNCIAS VIA CDN — nenhum arquivo local, nenhum fetch.
@@ -680,6 +680,59 @@ function periodoAtual(aluno) {
 }
 function statusDoc(doc) { return doc ? doc.status : null; }
 
+/* ── Adaptações, acessibilidades e recursos ──────────────────────
+   O formato anterior guardava tudo em um único campo "adaptacao".
+   A leitura abaixo mantém essas respostas fictícias compatíveis e passa
+   a separar o que acontece na avaliação, na rotina e no uso de recursos. */
+const RECURSOS_ASSISTIVOS = [
+  'Abafador de ruído', 'Calculadora', 'Material concreto',
+  'Agenda visual', 'Roteiro impresso', 'Dispositivo digital'
+];
+
+function acessibilidadesDe(resposta) {
+  if (resposta && resposta.acessibilidades) {
+    const a = resposta.acessibilidades;
+    return {
+      avaliacao: { usa: !!(a.avaliacao && a.avaliacao.usa), descricao: (a.avaliacao && a.avaliacao.descricao) || '' },
+      rotina: { usa: !!(a.rotina && a.rotina.usa), descricao: (a.rotina && a.rotina.descricao) || '' },
+      recursos: {
+        usa: !!(a.recursos && a.recursos.usa),
+        itens: a.recursos && Array.isArray(a.recursos.itens) ? [...a.recursos.itens] : [],
+        outros: (a.recursos && a.recursos.outros) || ''
+      }
+    };
+  }
+
+  const legado = resposta && resposta.adaptacao ? resposta.adaptacao : { necessita: false, quais: '' };
+  const texto = legado.quais || '';
+  const indicaAvaliacao = !!legado.necessita && /avalia|prova|tempo ampliado|enunciado|quest(ão|ões)|correç|produção escrita/i.test(texto);
+  const indicaRotina = !!legado.necessita && /rotina|agenda visual|sequência das atividades|dupla fixa|pausa ativa|lista curta|registro em esquema/i.test(texto);
+  const inferidos = RECURSOS_ASSISTIVOS.filter(item => {
+    if (item === 'Material concreto') return /material concreto/i.test(texto);
+    if (item === 'Agenda visual') return /agenda visual|rotina visual/i.test(texto);
+    if (item === 'Roteiro impresso') return /roteiro impresso/i.test(texto);
+    if (item === 'Calculadora') return /calculadora/i.test(texto);
+    if (item === 'Abafador de ruído') return /abafador/i.test(texto);
+    return /dispositivo|tablet|computador/i.test(texto);
+  });
+
+  return {
+    avaliacao: { usa: indicaAvaliacao || (!!legado.necessita && !indicaRotina), descricao: indicaAvaliacao || !indicaRotina ? texto : '' },
+    rotina: { usa: indicaRotina, descricao: indicaRotina ? texto : '' },
+    recursos: { usa: inferidos.length > 0, itens: inferidos, outros: '' }
+  };
+}
+
+function textoRecursos(recursos) {
+  const itens = [...(recursos.itens || [])];
+  if (recursos.outros && recursos.outros.trim()) itens.push(recursos.outros.trim());
+  return itens.length ? listar(itens) : 'uso informado, sem recurso especificado';
+}
+
+function temAcessibilidade(a) {
+  return a.avaliacao.usa || a.rotina.usa || a.recursos.usa;
+}
+
 /* ── Atribuições: docente ⇄ ficha ─────────────────────────────── */
 function turmaDe(aluno) { return TURMAS.find(t => t.id === aluno.turmaId) || null; }
 function docentesDoSegmento(seg) { return DOCENTES.filter(d => d.segmentos.includes(seg)); }
@@ -690,7 +743,8 @@ function fichaPendente(docente, segmento) {
   const base = {
     area: docente.papel, professor: docente.nome, disciplina: docente.disciplina,
     niveis: nv(3, 3, 3), manifestacoes: JSON.parse(JSON.stringify(SEM_MANIF)),
-    observacoes: '', adaptacao: { necessita: false, quais: '' }, estrategias: '', outras: '',
+    observacoes: '', adaptacao: { necessita: false, quais: '' },
+    acessibilidades: acessibilidadesDe(null), estrategias: '', outras: '',
     status: 'Pendente', enviadoEm: null
   };
   if (fichaPolivalente(segmento)) base.areasDesc = Object.fromEntries(AREAS_DESC.map(x => [x.id, '']));
@@ -982,11 +1036,29 @@ function gerarEstudoDeCaso(aluno) {
   }
   S.push(analise);
 
-  const comAdaptacao = envs.filter(r => r.adaptacao && r.adaptacao.necessita);
-  if (comAdaptacao.length) {
-    S.push(`Os professores apontam necessidade de adaptação em ${comAdaptacao.length} de ${envs.length} fichas. As medidas descritas são: ${listar(comAdaptacao.map(r => `${minusculo(r.adaptacao.quais.replace(/\.$/, ''))} (${r.disciplina || r.area})`))}.`);
+  S.push('## Adaptações, acessibilidades e recursos em uso');
+  const registrosAcess = envs.map(r => ({ r, a: acessibilidadesDe(r) }));
+  const emAvaliacao = registrosAcess.filter(x => x.a.avaliacao.usa);
+  const naRotina = registrosAcess.filter(x => x.a.rotina.usa);
+  const comRecursos = registrosAcess.filter(x => x.a.recursos.usa);
+  if (!emAvaliacao.length && !naRotina.length && !comRecursos.length) {
+    S.push(`Nenhum professor registrou adaptação, acessibilidade ou recurso assistivo em uso neste período. Recomenda-se confirmar essa informação em conselho de classe e na devolutiva à família.`);
   } else {
-    S.push(`Nenhum professor registrou necessidade de adaptação neste período, o que recomenda verificar em conselho de classe se os apoios previstos seguem necessários e estão sendo efetivamente praticados.`);
+    if (emAvaliacao.length) {
+      emAvaliacao.forEach(({ r, a }) => S.push(`- Avaliações · ${r.disciplina || r.area} (${r.professor}): ${a.avaliacao.descricao || 'uso informado, sem detalhamento'}.`));
+    } else {
+      S.push('- Avaliações: nenhum apoio específico informado nas fichas recebidas.');
+    }
+    if (naRotina.length) {
+      naRotina.forEach(({ r, a }) => S.push(`- Rotina diária · ${r.disciplina || r.area} (${r.professor}): ${a.rotina.descricao || 'uso informado, sem detalhamento'}.`));
+    } else {
+      S.push('- Rotina diária: nenhuma adaptação ou acessibilidade informada nas fichas recebidas.');
+    }
+    if (comRecursos.length) {
+      comRecursos.forEach(({ r, a }) => S.push(`- Tecnologia assistiva ou recurso material · ${r.disciplina || r.area} (${r.professor}): ${textoRecursos(a.recursos)}.`));
+    } else {
+      S.push('- Tecnologia assistiva ou recurso material: nenhum uso informado nas fichas recebidas.');
+    }
   }
 
   /* ── Considerações e encaminhamentos ── */
@@ -1027,6 +1099,17 @@ function gerarPEI(aluno) {
 
   const S = [];
 
+  /* O estudo de caso passa a integrar o próprio PEI. Quando já existe uma
+     versão revisada pela psicologia, ela é preservada; caso contrário, a
+     versão local é composta no momento da geração do plano. */
+  const estudoIntegrado = aluno.documentos.estudo && aluno.documentos.estudo.texto
+    ? aluno.documentos.estudo.texto.trim()
+    : gerarEstudoDeCaso(aluno);
+  S.push('## Parte I — Estudo de caso');
+  S.push('O estudo de caso abaixo integra este Plano Educacional Individualizado e fundamenta os objetivos, apoios e estratégias definidos para o período.');
+  S.push(estudoIntegrado);
+  S.push('## Parte II — Plano Educacional Individualizado');
+
   S.push('## Identificação');
   S.push(`${aluno.nome}, ${aluno.idade} anos, matriculad${a} ${aluno.serieExtenso}, turma ${aluno.turma}. Plano elaborado pelo ${SETOR} em ${dataPorExtenso(HOJE_ISO)}, com base em ${envs.length} ficha${envs.length > 1 ? 's' : ''} de observação e considerando ${nec.o}.`);
   S.push(`Vigência: ${PERIODO_ATUAL}, com revisão prevista para ${dataPorExtenso(aluno.proximaRevisao)}.`);
@@ -1055,22 +1138,27 @@ function gerarPEI(aluno) {
     S.push('- Manutenção: sustentar as conquistas consolidadas, com registro quinzenal do que já é realizado sem apoio do adulto.');
   }
 
-  S.push('## Adaptações e recursos');
-  const comAdaptacao = envs.filter(r => r.adaptacao && r.adaptacao.necessita && r.adaptacao.quais);
-  if (comAdaptacao.length) {
-    comAdaptacao.forEach(r => S.push(`- ${r.disciplina || r.area} (${r.professor}): ${r.adaptacao.quais}`));
-    if (comAdaptacao.length < envs.length) {
-      const sem = envs.filter(r => !(r.adaptacao && r.adaptacao.necessita)).map(r => r.disciplina || r.area);
-      S.push(`- ${listar(sem)}: sem necessidade de adaptação registrada — avaliar em conselho se as medidas acima devem ser estendidas.`);
-    }
+  S.push('## Adaptações, acessibilidades e recursos previstos');
+  const apoios = envs.map(r => ({ r, a: acessibilidadesDe(r) }));
+  const apoiosAvaliacao = apoios.filter(x => x.a.avaliacao.usa);
+  const apoiosRotina = apoios.filter(x => x.a.rotina.usa);
+  const recursos = apoios.filter(x => x.a.recursos.usa);
+  if (!apoios.some(x => temAcessibilidade(x.a))) {
+    S.push('- Nenhuma adaptação, acessibilidade ou tecnologia assistiva foi registrada pelos professores. Confirmar a necessidade de apoios no conselho de classe e na escuta da família.');
   } else {
-    S.push('- Nenhuma adaptação registrada pelos professores neste período. Avaliar em conselho de classe se há necessidade de instituí-las.');
+    if (apoiosAvaliacao.length) apoiosAvaliacao.forEach(({ r, a }) => S.push(`- Avaliações · ${r.disciplina || r.area} (${r.professor}): ${a.avaliacao.descricao || 'manter o apoio informado e detalhá-lo na próxima revisão'}.`));
+    else S.push('- Avaliações: sem adaptação específica registrada neste período.');
+    if (apoiosRotina.length) apoiosRotina.forEach(({ r, a }) => S.push(`- Rotina diária · ${r.disciplina || r.area} (${r.professor}): ${a.rotina.descricao || 'manter o apoio informado e detalhá-lo na próxima revisão'}.`));
+    else S.push('- Rotina diária: sem adaptação específica registrada neste período.');
+    if (recursos.length) recursos.forEach(({ r, a }) => S.push(`- Tecnologia assistiva ou recurso material · ${r.disciplina || r.area} (${r.professor}): ${textoRecursos(a.recursos)}.`));
+    else S.push('- Tecnologia assistiva ou recurso material: nenhum recurso informado neste período.');
   }
 
   S.push('## Estratégias por professor');
   envs.forEach(r => {
     const criticoLocal = ITENS.slice().sort((x, y) => r.niveis[y.id] - r.niveis[x.id])[0];
-    const base = r.estrategias || (r.adaptacao && r.adaptacao.quais) || 'manter as práticas já em curso';
+    const acess = acessibilidadesDe(r);
+    const base = r.estrategias || acess.avaliacao.descricao || acess.rotina.descricao || 'manter as práticas já em curso';
     S.push(`- ${r.disciplina || r.area} (${r.professor}): ${minusculo(base.replace(/\.$/, ''))}. Foco: ${minusculo(criticoLocal.rotulo)} — hoje em nível de ${minusculo(rotuloDesempenho(desempenho(r.niveis[criticoLocal.id])))}.`);
   });
   const pends = pendentes(aluno);
@@ -1650,8 +1738,8 @@ const DESCRITOR_NIVEL = {
   5: 'Dificuldade acentuada — apoio contínuo'
 };
 const COR_NIVEL = {
-  1: 'bg-sabia-600 text-white', 2: 'bg-sabia-400 text-white', 3: 'bg-ambar-300 text-ambar-700',
-  4: 'bg-telha-300 text-telha-600', 5: 'bg-telha-500 text-white'
+  1: 'bg-pei-700 text-white', 2: 'bg-pei-700 text-white', 3: 'bg-pei-700 text-white',
+  4: 'bg-pei-700 text-white', 5: 'bg-pei-700 text-white'
 };
 
 function LinhaItem({ item, valor, aoMudar, cor }) {
@@ -1701,6 +1789,88 @@ function SimNao({ valor, aoMudar }) {
   );
 }
 
+function BlocoAcessibilidades({ valor, aoMudar, numero }) {
+  const mudar = (grupo, campo, novoValor) => aoMudar({
+    ...valor,
+    [grupo]: { ...valor[grupo], [campo]: novoValor }
+  });
+  const alternarRecurso = item => {
+    const marcados = valor.recursos.itens.includes(item)
+      ? valor.recursos.itens.filter(x => x !== item)
+      : [...valor.recursos.itens, item];
+    mudar('recursos', 'itens', marcados);
+  };
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h3 className="font-serif text-lg font-semibold text-tinta-900">{numero}. Adaptações, acessibilidades e recursos</h3>
+        <p className="text-[12.5px] text-tinta-500 mt-1">Registre separadamente o que é utilizado nas avaliações, na rotina diária e como apoio material.</p>
+      </div>
+
+      <div className="space-y-3">
+        <div className={`rounded-xl p-4 ring-1 ring-inset transition ${valor.avaliacao.usa ? 'bg-pei-50/70 ring-pei-200' : 'bg-white ring-pei-100'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[13.5px] font-medium text-tinta-800">Nas avaliações</p>
+              <p className="text-[12px] text-tinta-500 mt-0.5">O estudante utiliza adaptação ou acessibilidade para realizar provas e atividades avaliativas?</p>
+            </div>
+            <SimNao valor={valor.avaliacao.usa} aoMudar={v => mudar('avaliacao', 'usa', v)} />
+          </div>
+          {valor.avaliacao.usa && (
+            <textarea value={valor.avaliacao.descricao} maxLength={400} rows={2} onChange={e => mudar('avaliacao', 'descricao', e.target.value)}
+              placeholder="Ex.: tempo ampliado, prova segmentada, leitura de enunciados ou formato adaptado."
+              className="animar-item mt-3 w-full resize-none rounded-lg border-0 bg-white px-3.5 py-2.5 text-[13.5px] leading-relaxed text-tinta-900 ring-1 ring-inset ring-pei-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-pei-500 outline-none transition" />
+          )}
+        </div>
+
+        <div className={`rounded-xl p-4 ring-1 ring-inset transition ${valor.rotina.usa ? 'bg-pei-50/70 ring-pei-200' : 'bg-white ring-pei-100'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[13.5px] font-medium text-tinta-800">Na rotina diária</p>
+              <p className="text-[12px] text-tinta-500 mt-0.5">Há adaptação ou acessibilidade utilizada no cotidiano da sala e dos demais espaços?</p>
+            </div>
+            <SimNao valor={valor.rotina.usa} aoMudar={v => mudar('rotina', 'usa', v)} />
+          </div>
+          {valor.rotina.usa && (
+            <textarea value={valor.rotina.descricao} maxLength={400} rows={2} onChange={e => mudar('rotina', 'descricao', e.target.value)}
+              placeholder="Ex.: rotina visual, lugar com menos estímulos, pausas combinadas ou apoio para transições."
+              className="animar-item mt-3 w-full resize-none rounded-lg border-0 bg-white px-3.5 py-2.5 text-[13.5px] leading-relaxed text-tinta-900 ring-1 ring-inset ring-pei-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-pei-500 outline-none transition" />
+          )}
+        </div>
+
+        <div className={`rounded-xl p-4 ring-1 ring-inset transition ${valor.recursos.usa ? 'bg-pei-50/70 ring-pei-200' : 'bg-white ring-pei-100'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[13.5px] font-medium text-tinta-800">Tecnologia assistiva ou recurso material</p>
+              <p className="text-[12px] text-tinta-500 mt-0.5">O estudante utiliza algum recurso para acessar, organizar ou realizar as atividades?</p>
+            </div>
+            <SimNao valor={valor.recursos.usa} aoMudar={v => mudar('recursos', 'usa', v)} />
+          </div>
+          {valor.recursos.usa && (
+            <div className="animar-item mt-3">
+              <div className="flex flex-wrap gap-2">
+                {RECURSOS_ASSISTIVOS.map(item => {
+                  const marcado = valor.recursos.itens.includes(item);
+                  return (
+                    <button key={item} type="button" onClick={() => alternarRecurso(item)}
+                      className={`rounded-full px-3 py-2 text-[12px] font-medium ring-1 ring-inset transition ${marcado ? 'bg-pei-700 text-white ring-pei-700' : 'bg-white text-tinta-600 ring-pei-200 hover:ring-pei-400'}`}>
+                      {marcado ? '✓ ' : ''}{item}
+                    </button>
+                  );
+                })}
+              </div>
+              <input value={valor.recursos.outros} maxLength={160} onChange={e => mudar('recursos', 'outros', e.target.value)}
+                placeholder="Outro recurso (opcional)"
+                className="mt-3 w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-[13.5px] text-tinta-900 ring-1 ring-inset ring-pei-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-pei-500 outline-none transition" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
   const meus = alunosDoProfessor(alunos, perfil);
   const aluno = meus.find(a => a.id === alunoId) || null;
@@ -1715,6 +1885,7 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
     manifestacoes: base ? JSON.parse(JSON.stringify(base.manifestacoes)) : JSON.parse(JSON.stringify(SEM_MANIF)),
     observacoes: base ? base.observacoes : '',
     adaptacao: base ? { ...base.adaptacao } : { necessita: false, quais: '' },
+    acessibilidades: acessibilidadesDe(base),
     estrategias: base ? base.estrategias : '',
     outras: base ? base.outras : ''
   });
@@ -1871,37 +2042,17 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
                   placeholder="Ex.: entende rápido e termina antes dos colegas quando a tarefa é curta; em listas longas, para na metade." />
 
                 <div className="pt-5 border-t border-pei-100">
-                  {poliv ? (
-                    <CampoTexto rotulo="7. Necessidade de adaptação / estratégia de intervenção"
-                      ajuda="Descreva as adaptações necessárias e as estratégias que têm funcionado."
-                      valor={f.adaptacao.quais}
-                      aoMudar={v => set('adaptacao', { necessita: v.trim().length > 0, quais: v })} linhas={3}
-                      placeholder="Ex.: tempo ampliado nas produções escritas, agenda visual na mesa e antecipação das mudanças de rotina." />
-                  ) : (
-                    <>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <label className="text-[13.5px] font-medium text-tinta-800">8. Necessidade de adaptação?</label>
-                        <SimNao valor={f.adaptacao.necessita} aoMudar={v => set('adaptacao', { ...f.adaptacao, necessita: v })} />
-                      </div>
-                      {f.adaptacao.necessita && (
-                        <textarea value={f.adaptacao.quais} maxLength={400} rows={2} onChange={e => set('adaptacao', { ...f.adaptacao, quais: e.target.value })}
-                          placeholder="Quais adaptações são necessárias?"
-                          className="animar-item mt-3 w-full resize-none rounded-xl border-0 bg-pei-50/70 px-4 py-3 text-[14px] leading-relaxed text-tinta-900 ring-1 ring-inset ring-pei-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-pei-500 outline-none transition" />
-                      )}
-                    </>
-                  )}
+                  <BlocoAcessibilidades valor={f.acessibilidades} aoMudar={v => set('acessibilidades', v)} numero={poliv ? '7' : '8'} />
                 </div>
 
-                {!poliv && (
-                  <div className="pt-5 border-t border-pei-100">
-                    <CampoTexto rotulo="9. Estratégias de intervenção" ajuda="O que você já faz em sala e tem funcionado."
-                      valor={f.estrategias} aoMudar={v => set('estrategias', v)} linhas={2}
-                      placeholder="Ex.: dividir a atividade em blocos com pausa combinada entre eles." />
-                  </div>
-                )}
+                <div className="pt-5 border-t border-pei-100">
+                  <CampoTexto rotulo={`${poliv ? '8' : '9'}. Estratégias de intervenção`} ajuda="O que você já faz em sala e tem funcionado."
+                    valor={f.estrategias} aoMudar={v => set('estrategias', v)} linhas={2}
+                    placeholder="Ex.: dividir a atividade em blocos com pausa combinada entre eles." />
+                </div>
 
                 <div className="pt-5 border-t border-pei-100">
-                  <CampoTexto rotulo={`${poliv ? '8' : '10'}. Outras informações`} ajuda="Opcional — qualquer informação que ajude a equipe a compreender o caso."
+                  <CampoTexto rotulo={`${poliv ? '9' : '10'}. Outras informações`} ajuda="Opcional — qualquer informação que ajude a equipe a compreender o caso."
                     valor={f.outras} aoMudar={v => set('outras', v)} linhas={2} placeholder="Opcional." />
                 </div>
               </Cartao>
@@ -1930,7 +2081,9 @@ function FichaObservacao({ alunos, perfil, alunoId, setAlunoId, aoEnviar }) {
                 <dl className="mt-5 pt-5 border-t border-pei-100 space-y-3 text-[13px]">
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Itens em nível 4 ou 5</dt><dd className="font-medium text-tinta-900 tabular-nums">{criticos.length}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Manifestações marcadas</dt><dd className="font-medium text-tinta-900 tabular-nums">{MANIFESTACOES.filter(m => f.manifestacoes[m.id].sim).length}</dd></div>
-                  <div className="flex justify-between gap-3"><dt className="text-tinta-500">Adaptação necessária</dt><dd className="font-medium text-tinta-900">{f.adaptacao.necessita ? 'Sim' : 'Não'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-tinta-500">Acessibilidade em avaliação</dt><dd className="font-medium text-tinta-900">{f.acessibilidades.avaliacao.usa ? 'Sim' : 'Não'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-tinta-500">Acessibilidade na rotina</dt><dd className="font-medium text-tinta-900">{f.acessibilidades.rotina.usa ? 'Sim' : 'Não'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-tinta-500">Recurso assistivo/material</dt><dd className="font-medium text-tinta-900">{f.acessibilidades.recursos.usa ? 'Sim' : 'Não'}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-tinta-500">Destino</dt><dd className="font-medium text-tinta-900">Psicologia</dd></div>
                 </dl>
 
@@ -2200,6 +2353,7 @@ function CartaoResposta({ resposta }) {
   const enviada = resposta.status === 'Enviado';
   const perfis = enviada ? perfisDe(resposta.niveis) : null;
   const manifs = enviada ? MANIFESTACOES.filter(m => resposta.manifestacoes[m.id].sim) : [];
+  const acess = acessibilidadesDe(resposta);
 
   return (
     <div className={`rounded-xl px-4 py-4 ring-1 ring-inset ${enviada ? 'bg-white ring-pei-200' : 'bg-pei-50/40 ring-pei-100'}`}>
@@ -2272,12 +2426,14 @@ function CartaoResposta({ resposta }) {
             <p className="text-[12.5px] text-tinta-600 leading-relaxed mt-3.5 italic border-l-2 border-pei-200 pl-3">“{resposta.observacoes}”</p>
           )}
 
-          {(resposta.adaptacao.necessita || resposta.estrategias) && (
-            <div className="mt-3.5 pt-3.5 border-t border-pei-100 space-y-1.5 text-[12.5px] text-tinta-600 leading-relaxed">
-              {resposta.adaptacao.necessita && <p><strong className="font-medium text-tinta-800">Adaptação:</strong> {resposta.adaptacao.quais}</p>}
-              {resposta.estrategias && <p><strong className="font-medium text-tinta-800">Estratégias:</strong> {resposta.estrategias}</p>}
-            </div>
-          )}
+          <div className="mt-3.5 pt-3.5 border-t border-pei-100 space-y-2 text-[12.5px] text-tinta-600 leading-relaxed">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta-400">Adaptações, acessibilidades e recursos</p>
+            {acess.avaliacao.usa && <p><strong className="font-medium text-tinta-800">Avaliações:</strong> {acess.avaliacao.descricao || 'Uso informado, sem detalhamento.'}</p>}
+            {acess.rotina.usa && <p><strong className="font-medium text-tinta-800">Rotina diária:</strong> {acess.rotina.descricao || 'Uso informado, sem detalhamento.'}</p>}
+            {acess.recursos.usa && <p><strong className="font-medium text-tinta-800">Tecnologia assistiva ou recurso material:</strong> {textoRecursos(acess.recursos)}.</p>}
+            {!temAcessibilidade(acess) && <p className="text-tinta-400">Nenhum apoio específico informado nesta ficha.</p>}
+            {resposta.estrategias && <p><strong className="font-medium text-tinta-800">Estratégias:</strong> {resposta.estrategias}</p>}
+          </div>
 
           {resposta.outras && (
             <p className="text-[12px] text-tinta-500 leading-relaxed mt-3 pt-3 border-t border-pei-100">
@@ -2484,7 +2640,7 @@ const TIPOS_DOC = {
   pei: {
     nome: 'PEI', acao: 'PEI', titulo: 'Plano Educacional Individualizado',
     sobretitulo: 'Plano do período', icone: 'plano',
-    descricao: 'Objetivos, adaptações e estratégias por professor, derivados das prioridades do estudo de caso e das considerações do setor.',
+    descricao: 'Documento completo: estudo de caso integrado, objetivos, adaptações, acessibilidades, recursos e estratégias por professor.',
     vazio: 'Nenhum PEI em aberto',
     vazioTexto: 'Abra a tela de respostas dos professores, escolha um aluno e clique em “Gerar PEI”.'
   }
@@ -2624,9 +2780,11 @@ function TelaDocumento({ alunos, tipo, contexto, perfil, setTexto, aoAprovar, ao
               <div className="font-serif text-[16px] leading-[1.8] text-tinta-800"><CorpoDocumento texto={doc.texto} justificado /></div>
             )}
 
-            <footer className="mt-14 pt-8 border-t border-pei-100 grid sm:grid-cols-2 gap-8 text-center text-[12.5px] text-tinta-500">
+            <footer className={`mt-14 pt-8 border-t border-pei-100 grid ${tipo === 'pei' ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-3'} gap-x-6 gap-y-10 text-center text-[12.5px] text-tinta-500`}>
               <div><div className="h-px bg-tinta-400/40 mb-2.5" />{PERFIS.psicologia.nome}<br /><span className="text-tinta-400">{SETOR}</span></div>
               <div><div className="h-px bg-tinta-400/40 mb-2.5" />{aluno.referencia}<br /><span className="text-tinta-400">Equipe de referência</span></div>
+              {tipo === 'pei' && <div><div className="h-px bg-tinta-400/40 mb-2.5" />{aluno.nome}<br /><span className="text-tinta-400">Estudante (quando aplicável)</span></div>}
+              <div><div className="h-px bg-tinta-400/40 mb-2.5" />&nbsp;<br /><span className="text-tinta-400">Responsável familiar</span></div>
             </footer>
             <p className="mt-10 text-center text-[10.5px] uppercase tracking-[0.18em] text-tinta-400 font-sans">Demonstração — dados fictícios</p>
           </article>
@@ -3516,6 +3674,14 @@ function App() {
 
   /* ── professor: envia a própria ficha ── */
   function enviarFicha(id, f) {
+    const acessibilidades = JSON.parse(JSON.stringify(f.acessibilidades));
+    const descricoesLegadas = [];
+    if (acessibilidades.avaliacao.usa && acessibilidades.avaliacao.descricao.trim()) descricoesLegadas.push(acessibilidades.avaliacao.descricao.trim());
+    if (acessibilidades.rotina.usa && acessibilidades.rotina.descricao.trim()) descricoesLegadas.push(acessibilidades.rotina.descricao.trim());
+    const adaptacaoLegada = {
+      necessita: acessibilidades.avaliacao.usa || acessibilidades.rotina.usa,
+      quais: descricoesLegadas.join(' ')
+    };
     setAlunos(lista => lista.map(a => {
       if (a.id !== id) return a;
       const respostas = a.respostas.map(r => r.professor !== perfil.nome ? r : {
@@ -3526,7 +3692,8 @@ function App() {
         areasDesc: fichaPolivalente(a.segmento) ? { ...f.areasDesc } : undefined,
         manifestacoes: JSON.parse(JSON.stringify(f.manifestacoes)),
         observacoes: f.observacoes,
-        adaptacao: { ...f.adaptacao },
+        adaptacao: adaptacaoLegada,
+        acessibilidades,
         estrategias: f.estrategias,
         outras: f.outras,
         status: 'Enviado', enviadoEm: HOJE_ISO
