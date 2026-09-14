@@ -1,6 +1,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sistema PEI — DEMONSTRAÇÃO (CFC)</title>
+<title>Sistema PEI — DEMONSTRAÇÃO [CFC]</title>
 
 <!-- ══════════════════════════════════════════════════════════════════
      DEPENDÊNCIAS VIA CDN — nenhum arquivo local, nenhum fetch.
@@ -2651,42 +2651,126 @@ const TIPOS_DOC = {
 function PainelComentario({ aluno, perfil, aoSalvar, tipo }) {
   const [texto, setTexto] = useState(aluno.comentario ? aluno.comentario.texto : '');
   const [salvo, setSalvo] = useState(false);
-  useEffect(() => { setTexto(aluno.comentario ? aluno.comentario.texto : ''); setSalvo(false); }, [aluno.id]);
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    setTexto(aluno.comentario ? aluno.comentario.texto : '');
+    setSalvo(false);
+    setAberto(false);
+  }, [aluno.id]);
+
+  useEffect(() => {
+    if (!aberto) return;
+    const overflowAnterior = document.body.style.overflow;
+    const fecharComEsc = e => { if (e.key === 'Escape') setAberto(false); };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', fecharComEsc);
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      document.removeEventListener('keydown', fecharComEsc);
+    };
+  }, [aberto]);
 
   const mudou = texto.trim() !== (aluno.comentario ? aluno.comentario.texto.trim() : '');
   const jaNoPei = aluno.documentos.pei && aluno.comentario;
+  const limite = 4000;
+
+  function salvarComentario() {
+    aoSalvar(aluno.id, texto);
+    setSalvo(true);
+    setAberto(false);
+  }
 
   return (
-    <Cartao className="p-6">
-      <div className="flex items-center gap-2">
-        <Icone nome="balao" className="h-4 w-4 text-lilas-500" />
-        <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta-400">Considerações sobre o estudante</h4>
-      </div>
-      <p className="text-[12.5px] text-tinta-500 leading-relaxed mt-2.5">
-        Registro do setor de psicologia — hipóteses, leitura clínica, orientações que não vêm das fichas.
-        {tipo === 'estudo' ? ' Entra no PEI como seção própria quando o plano for gerado.' : ' Já consta na seção “Considerações do setor de psicologia” deste plano.'}
-      </p>
+    <>
+      <Cartao className="p-6">
+        <div className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-lilas-50 text-lilas-500 ring-1 ring-inset ring-lilas-200">
+            <Icone nome="balao" className="h-[18px] w-[18px]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta-400">Considerações da psicologia</h4>
+            <p className="text-[12.5px] text-tinta-500 leading-relaxed mt-1.5">
+              Registro profissional complementar às fichas dos professores.
+            </p>
+          </div>
+        </div>
 
-      <textarea value={texto} maxLength={900} rows={7} onChange={e => { setTexto(e.target.value); setSalvo(false); }}
-        placeholder="Ex.: o contraste entre as aulas práticas e as expositivas sugere que a dificuldade é de sustentação da atenção em tarefa passiva, não de compreensão. Vale testar a redução dos blocos expositivos antes de ampliar adaptações de avaliação."
-        className="mt-3.5 w-full resize-y rounded-xl border-0 bg-lilas-50/50 px-4 py-3 text-[13.5px] leading-relaxed text-tinta-900 ring-1 ring-inset ring-lilas-200 placeholder:text-tinta-400 focus:ring-2 focus:ring-lilas-400 outline-none transition" />
+        {aluno.comentario ? (
+          <div className="mt-4 rounded-xl bg-lilas-50/60 p-3.5 ring-1 ring-inset ring-lilas-100">
+            <p className="line-clamp-3 text-[12.5px] leading-relaxed text-tinta-600">{aluno.comentario.texto}</p>
+            <p className="mt-2 text-[10.5px] text-tinta-400">Registrado em {formatarData(aluno.comentario.data)}</p>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-dashed border-lilas-200 px-3.5 py-3 text-[12px] leading-relaxed text-tinta-400">
+            Nenhuma consideração registrada para este estudante.
+          </div>
+        )}
 
-      <div className="flex items-center justify-between gap-3 mt-3">
-        <span className={`text-[11.5px] tabular-nums ${texto.length > 810 ? 'text-telha-500' : 'text-tinta-400'}`}>{texto.length}/900</span>
-        <Botao variante={mudou ? 'primario' : 'secundario'} className="px-3.5 py-2 text-[13px]" disabled={!mudou}
-          onClick={() => { aoSalvar(aluno.id, texto); setSalvo(true); }}>
-          <Icone nome="check" className="h-3.5 w-3.5" />{salvo && !mudou ? 'Comentário salvo' : 'Salvar comentário'}
+        <Botao variante="secundario" className="mt-4 w-full justify-center border-lilas-200 text-lilas-600 hover:bg-lilas-50" onClick={() => setAberto(true)}>
+          <Icone nome="balao" className="h-4 w-4" />{aluno.comentario ? 'Abrir e editar comentário' : 'Escrever comentário'}
         </Botao>
-      </div>
 
-      {aluno.comentario && !mudou && (
-        <p className="text-[11.5px] text-tinta-400 mt-2.5">
-          Registrado por {aluno.comentario.autor} em {formatarData(aluno.comentario.data)}.
-          {tipo === 'estudo' && !jaNoPei && ' Será incorporado ao gerar o PEI.'}
-          {tipo === 'estudo' && jaNoPei && ' O PEI já existe — use “Gerar novamente” lá para incorporar alterações.'}
-        </p>
+        {salvo && !mudou && <p className="mt-2.5 text-center text-[11.5px] text-sabia-700">Comentário salvo com sucesso.</p>}
+        {mudou && !aberto && <p className="mt-2.5 text-center text-[11.5px] text-ambar-600">Há alterações ainda não salvas.</p>}
+        {tipo === 'estudo' && aluno.comentario && !mudou && (
+          <p className="text-[11.5px] text-tinta-400 mt-2.5 leading-relaxed">
+            {!jaNoPei ? 'Será incorporado ao gerar o PEI.' : 'O PEI já existe — use “Gerar novamente” para incorporar alterações futuras.'}
+          </p>
+        )}
+      </Cartao>
+
+      {aberto && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="titulo-comentario">
+          <button className="animar-veu absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setAberto(false)} aria-label="Fechar comentário" />
+          <section className="animar-item relative flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[90dvh] sm:max-w-4xl sm:rounded-[24px]">
+            <header className="flex items-start gap-4 border-b border-slate-200 px-5 py-5 sm:px-7 sm:py-6">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-lilas-50 text-lilas-500 ring-1 ring-inset ring-lilas-200">
+                <Icone nome="balao" className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.15em] text-lilas-500">Registro do setor de psicologia</p>
+                <h2 id="titulo-comentario" className="mt-1 font-serif text-[22px] font-semibold leading-tight text-tinta-900 sm:text-[27px]">Considerações sobre {primeiroNome(aluno.nome)}</h2>
+                <p className="mt-1 text-[12.5px] text-tinta-500">{aluno.serie} · {aluno.segmento} · {PERIODO_ATUAL}</p>
+              </div>
+              <button onClick={() => setAberto(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-tinta-400 transition hover:bg-slate-100 hover:text-tinta-700" aria-label="Fechar">
+                <Icone nome="fechar" className="h-5 w-5" />
+              </button>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+              <div className="mb-4 flex items-start gap-3 rounded-xl bg-lilas-50/70 px-4 py-3 ring-1 ring-inset ring-lilas-100">
+                <Icone nome="faisca" className="mt-0.5 h-4 w-4 shrink-0 text-lilas-500" />
+                <p className="text-[12.5px] leading-relaxed text-lilas-600">
+                  Registre hipóteses, leitura do caso, contexto familiar relevante e orientações que não aparecem nas fichas docentes.
+                  {tipo === 'estudo' ? ' Este texto será incorporado ao PEI quando o plano for gerado.' : ' Ao salvar, gere novamente o PEI para atualizar o documento.'}
+                </p>
+              </div>
+
+              <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-tinta-500" htmlFor="comentario-psicologia">Comentário profissional</label>
+              <textarea id="comentario-psicologia" autoFocus value={texto} maxLength={limite} onChange={e => { setTexto(e.target.value); setSalvo(false); }}
+                placeholder="Descreva a leitura integrada do caso, os fatores que parecem influenciar o desempenho, as orientações à equipe e os pontos que deverão compor o PEI."
+                className="mt-2.5 min-h-[330px] w-full resize-y rounded-2xl border-0 bg-slate-50 px-5 py-4 text-[15px] leading-[1.75] text-tinta-900 ring-1 ring-inset ring-slate-200 placeholder:text-tinta-400 focus:bg-white focus:ring-2 focus:ring-lilas-400 outline-none transition sm:min-h-[390px]" />
+            </div>
+
+            <footer className="border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center justify-between gap-4 sm:justify-start">
+                  <span className={`text-[12px] tabular-nums ${texto.length > limite * 0.9 ? 'text-telha-500' : 'text-tinta-400'}`}>{texto.length.toLocaleString('pt-BR')} / {limite.toLocaleString('pt-BR')} caracteres</span>
+                  {mudou && <span className="rounded-full bg-ambar-50 px-2.5 py-1 text-[11px] font-medium text-ambar-600 ring-1 ring-inset ring-ambar-200">Não salvo</span>}
+                </div>
+                <div className="flex gap-2.5">
+                  <Botao variante="fantasma" className="flex-1 justify-center sm:flex-none" onClick={() => setAberto(false)}>Fechar</Botao>
+                  <Botao className="flex-1 justify-center sm:flex-none" disabled={!mudou} onClick={salvarComentario}>
+                    <Icone nome="check" className="h-4 w-4" />Salvar comentário
+                  </Botao>
+                </div>
+              </div>
+            </footer>
+          </section>
+        </div>,
+        document.body
       )}
-    </Cartao>
+    </>
   );
 }
 
